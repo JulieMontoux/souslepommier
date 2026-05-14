@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { recapTVA, roundFiscal, calcMontantTVA } from '@/lib/tva'
 import { VariantePicker } from './variante-picker'
+import { PaiementModal } from './paiement-modal'
+import type { PaiementInput } from './paiement-modal'
 import type { ProduitPOS, ProduitPOSVariante, LigneCart } from '@/types/pos'
 
 const EMBALLAGE_LABELS: Record<string, string> = {
@@ -123,7 +125,7 @@ export function POSInterface({ produits, user }: POSInterfaceProps) {
     return () => window.removeEventListener('keydown', onKey)
   }, [picking, confirming, cart.length])
 
-  async function handleEncaisser() {
+  async function handleEncaisser(paiements: PaiementInput[]) {
     if (cart.length === 0 || saving) return
     setSaving(true)
     try {
@@ -132,7 +134,7 @@ export function POSInterface({ produits, user }: POSInterfaceProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           lignes: cart.map((l) => ({ varianteProduitId: l.varianteProduitId, qte: l.qte })),
-          paiements: [{ mode: 'ESPECES', montant: totalTTC }],
+          paiements,
         }),
       })
       if (!res.ok) {
@@ -336,32 +338,14 @@ export function POSInterface({ produits, user }: POSInterfaceProps) {
         />
       )}
 
-      {/* Confirmation paiement (multi-mode via #11) */}
+      {/* Modal paiement multi-modes */}
       {confirming && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-80 space-y-5 rounded-xl bg-white p-6 shadow-xl">
-            <h2 className="text-lg font-bold text-zinc-800">Confirmer le paiement</h2>
-            <p className="text-center text-4xl font-bold text-green-700">
-              {totalTTC.toFixed(2).replace('.', ',')} €
-            </p>
-            <p className="text-center text-xs text-zinc-400">
-              Paiement espèces — modes multiples disponibles après issue #11
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setConfirming(false)}
-                disabled={saving}
-              >
-                Annuler
-              </Button>
-              <Button className="flex-1" onClick={handleEncaisser} disabled={saving}>
-                {saving ? 'Enregistrement…' : '✓ Espèces'}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <PaiementModal
+          totalTTC={totalTTC}
+          onConfirm={handleEncaisser}
+          onClose={() => setConfirming(false)}
+          saving={saving}
+        />
       )}
     </div>
   )
