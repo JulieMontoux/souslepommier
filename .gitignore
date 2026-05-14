@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# Uploads utilisateur (logos, images) — sauf les .gitkeep
+/public/uploads/**
+!/public/uploads/**/.gitkeep
