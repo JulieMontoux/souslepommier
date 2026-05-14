@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { POSInterface } from '@/components/pos/pos-interface'
 import type { ProduitPOS } from '@/types/pos'
+import type { ConfigTicket } from '@/types/ticket'
 
 export const metadata = { title: 'Caisse — Sous le Pommier' }
 
@@ -12,17 +13,17 @@ export default async function PosPage() {
 
   const user = session.user as { id?: string; prenom?: string; nom?: string }
 
-  const produits = await prisma.produit.findMany({
-    where: { actif: true },
-    include: {
-      categorie: true,
-      variantes: {
-        where: { actif: true },
-        orderBy: { poids: 'asc' },
+  const [produits, configRaw] = await Promise.all([
+    prisma.produit.findMany({
+      where: { actif: true },
+      include: {
+        categorie: true,
+        variantes: { where: { actif: true }, orderBy: { poids: 'asc' } },
       },
-    },
-    orderBy: { nom: 'asc' },
-  })
+      orderBy: { nom: 'asc' },
+    }),
+    prisma.configEntreprise.findFirst(),
+  ])
 
   const produitsSerialises: ProduitPOS[] = produits
     .filter((p) => p.variantes.length > 0)
@@ -41,14 +42,23 @@ export default async function PosPage() {
       })),
     }))
 
+  const config: ConfigTicket = configRaw
+    ? {
+        raisonSociale: configRaw.raisonSociale,
+        siret: configRaw.siret,
+        tvaIntracommunautaire: configRaw.tvaIntracommunautaire,
+        adresse: configRaw.adresse,
+        codePostal: configRaw.codePostal,
+        ville: configRaw.ville,
+        telephone: configRaw.telephone,
+      }
+    : null
+
   return (
     <POSInterface
       produits={produitsSerialises}
-      user={{
-        id: user.id ?? '',
-        prenom: user.prenom ?? '',
-        nom: user.nom ?? '',
-      }}
+      user={{ id: user.id ?? '', prenom: user.prenom ?? '', nom: user.nom ?? '' }}
+      config={config}
     />
   )
 }

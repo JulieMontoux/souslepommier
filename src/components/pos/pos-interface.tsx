@@ -12,7 +12,9 @@ import { recapTVA, roundFiscal, calcMontantTVA } from '@/lib/tva'
 import { VariantePicker } from './variante-picker'
 import { PaiementModal } from './paiement-modal'
 import type { PaiementInput } from './paiement-modal'
+import { TicketModal } from './ticket-modal'
 import type { ProduitPOS, ProduitPOSVariante, LigneCart } from '@/types/pos'
+import type { ConfigTicket } from '@/types/ticket'
 
 const EMBALLAGE_LABELS: Record<string, string> = {
   VRAC: 'Vrac',
@@ -34,15 +36,17 @@ function buildVarianteLabel(v: ProduitPOSVariante): string {
 interface POSInterfaceProps {
   produits: ProduitPOS[]
   user: { id: string; prenom: string; nom: string }
+  config: ConfigTicket
 }
 
-export function POSInterface({ produits, user }: POSInterfaceProps) {
+export function POSInterface({ produits, user, config }: POSInterfaceProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [cart, setCart] = useState<LigneCart[]>([])
   const [picking, setPicking] = useState<ProduitPOS | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [lastVente, setLastVente] = useState<{ id: string; numeroTicket: string } | null>(null)
 
   const filteredProduits = produits.filter(
     (p) => !search || p.nom.toLowerCase().includes(search.toLowerCase())
@@ -143,9 +147,7 @@ export function POSInterface({ produits, user }: POSInterfaceProps) {
         return
       }
       const vente = await res.json()
-      toast.success(
-        `Vente ${vente.numeroTicket} enregistrée — ${totalTTC.toFixed(2).replace('.', ',')} €`
-      )
+      setLastVente({ id: vente.id, numeroTicket: vente.numeroTicket })
       setCart([])
       setConfirming(false)
       router.refresh()
@@ -335,6 +337,16 @@ export function POSInterface({ produits, user }: POSInterfaceProps) {
           produit={picking}
           onSelect={(variante) => addVariante(picking, variante)}
           onClose={() => setPicking(null)}
+        />
+      )}
+
+      {/* Ticket après vente */}
+      {lastVente && (
+        <TicketModal
+          venteId={lastVente.id}
+          venteNumero={lastVente.numeroTicket}
+          config={config}
+          onClose={() => setLastVente(null)}
         />
       )}
 
