@@ -11,6 +11,8 @@ type AuditAction =
   | 'DELETE'
   | 'DEACTIVATE'
   | 'ACTIVATE'
+  | 'CREATE_VENTE'
+  | 'ANNULER_VENTE'
 
 export async function logAudit({
   userId,
