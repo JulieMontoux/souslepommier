@@ -225,28 +225,50 @@ model Client {
 }
 
 model Facture {
-  id             String        @id @default(cuid())
-  numero         String        @unique
-  clientId       String
-  venteId        String?
-  dateEmission   DateTime      @default(now())
-  dateEcheance   DateTime?
-  statut         StatutFacture @default(BROUILLON)
-  totalHT        Decimal       @db.Decimal(10, 4)
-  totalTVA       Decimal       @db.Decimal(10, 4)
-  totalTTC       Decimal       @db.Decimal(10, 4)
-  pdfUrl         String?
-  notes          String?
+  id                 String        @id @default(cuid())
+  numero             String        @unique
+  clientId           String
+  venteId            String?
+  dateEmission       DateTime      @default(now())
+  dateEcheance       DateTime?
+  datePaiement       DateTime?
+  dateLivraison      DateTime?
+  statut             StatutFacture @default(BROUILLON)
+  totalHT            Decimal       @db.Decimal(10, 4)
+  totalTVA           Decimal       @db.Decimal(10, 4)
+  totalTTC           Decimal       @db.Decimal(10, 4)
+  pdfUrl             String?
+  notes              String?
   factureOriginaleId String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
-  client           Client   @relation(fields: [clientId], references: [id])
-  vente            Vente?   @relation(fields: [venteId], references: [id])
-  factureOriginale Facture? @relation("AvoirOf", fields: [factureOriginaleId], references: [id])
-  avoirs           Facture[] @relation("AvoirOf")
+  client           Client         @relation(fields: [clientId], references: [id])
+  vente            Vente?         @relation(fields: [venteId], references: [id])
+  factureOriginale Facture?       @relation("AvoirOf", fields: [factureOriginaleId], references: [id])
+  avoirs           Facture[]      @relation("AvoirOf")
+  lignes           LigneFacture[]
 
+  @@index([clientId])
+  @@index([statut])
   @@map("factures")
+}
+
+model LigneFacture {
+  id             String  @id @default(cuid())
+  factureId      String
+  designation    String
+  qte            Decimal @db.Decimal(10, 3)
+  prixUnitaireHT Decimal @db.Decimal(10, 4)
+  tauxTVA        Decimal @db.Decimal(5, 2)
+  montantHT      Decimal @db.Decimal(10, 4)
+  montantTVA     Decimal @db.Decimal(10, 4)
+  montantTTC     Decimal @db.Decimal(10, 4)
+  remise         Decimal @default(0) @db.Decimal(5, 2)
+
+  facture Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
+
+  @@map("lignes_facture")
 }
 
 // ─── Audit ────────────────────────────────────────────────────────────────────

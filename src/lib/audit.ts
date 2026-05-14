@@ -13,6 +13,11 @@ type AuditAction =
   | 'ACTIVATE'
   | 'CREATE_VENTE'
   | 'ANNULER_VENTE'
+  | 'CREATE_FACTURE'
+  | 'EMIT_FACTURE'
+  | 'PAY_FACTURE'
+  | 'ANNULER_FACTURE'
+  | 'CREATE_AVOIR'
 
 export async function logAudit({
   userId,
