@@ -11,12 +11,14 @@ import {
   Users,
   Settings,
   Package,
+  Building2,
 } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard, exact: true },
   { href: '/dashboard/produits', label: 'Produits', icon: Package },
   { href: '/dashboard/ventes', label: 'Ventes', icon: ShoppingBasket },
+  { href: '/dashboard/clients', label: 'Clients', icon: Building2 },
   { href: '/dashboard/factures', label: 'Factures', icon: FileText },
   { href: '/dashboard/statistiques', label: 'Statistiques', icon: BarChart3 },
   { href: '/dashboard/vendeurs', label: 'Vendeurs', icon: Users },
