@@ -25,6 +25,9 @@ type AuditAction =
   | 'ACTIVATE_USER'
   | 'DEACTIVATE_USER'
   | 'RESET_PASSWORD'
+  | 'CREATE_TAUX_TVA'
+  | 'UPDATE_TAUX_TVA'
+  | 'TOGGLE_TAUX_TVA'
 
 export async function logAudit({
   userId,

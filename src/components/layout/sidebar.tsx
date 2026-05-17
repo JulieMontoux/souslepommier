@@ -14,6 +14,7 @@ import {
   Building2,
   Lock,
   ScrollText,
+  Percent,
 } from 'lucide-react'
 
 const navItems = [
@@ -26,7 +27,8 @@ const navItems = [
   { href: '/dashboard/statistiques', label: 'Statistiques', icon: BarChart3 },
   { href: '/dashboard/vendeurs', label: 'Vendeurs', icon: Users },
   { href: '/dashboard/audit', label: 'Audit', icon: ScrollText },
-  { href: '/dashboard/configuration', label: 'Configuration', icon: Settings },
+  { href: '/dashboard/configuration/tva', label: 'Taux TVA', icon: Percent, exact: true },
+  { href: '/dashboard/configuration', label: 'Configuration', icon: Settings, exact: true },
 ]
 
 export function Sidebar() {
