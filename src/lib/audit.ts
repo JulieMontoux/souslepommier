@@ -18,6 +18,7 @@ type AuditAction =
   | 'PAY_FACTURE'
   | 'ANNULER_FACTURE'
   | 'CREATE_AVOIR'
+  | 'CLOTURE_CAISSE'
 
 export async function logAudit({
   userId,

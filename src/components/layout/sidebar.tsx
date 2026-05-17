@@ -12,6 +12,7 @@ import {
   Settings,
   Package,
   Building2,
+  Lock,
 } from 'lucide-react'
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
   { href: '/dashboard/ventes', label: 'Ventes', icon: ShoppingBasket },
   { href: '/dashboard/clients', label: 'Clients', icon: Building2 },
   { href: '/dashboard/factures', label: 'Factures', icon: FileText },
+  { href: '/dashboard/clotures', label: 'Clôtures', icon: Lock },
   { href: '/dashboard/statistiques', label: 'Statistiques', icon: BarChart3 },
   { href: '/dashboard/vendeurs', label: 'Vendeurs', icon: Users },
   { href: '/dashboard/configuration', label: 'Configuration', icon: Settings },
