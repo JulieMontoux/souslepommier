@@ -1,0 +1,16 @@
+import { createHmac } from 'crypto'
+
+export function computeVenteHash(data: {
+  numero: string
+  date: string
+  totalTTC: string
+  vendeurId: string
+  hashPrecedent: string | null
+}): string {
+  if (!process.env.SIGNING_SECRET) {
+    throw new Error('SIGNING_SECRET environment variable is not set')
+  }
+  return createHmac('sha256', process.env.SIGNING_SECRET)
+    .update(JSON.stringify(data))
+    .digest('hex')
+}
