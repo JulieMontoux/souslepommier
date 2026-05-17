@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
 import { LogOut, User } from 'lucide-react'
+import { CommandPalette } from './command-palette'
+import { ThemeToggle } from './theme-toggle'
 
 interface HeaderProps {
   user: {
@@ -26,43 +28,49 @@ export function Header({ user }: HeaderProps) {
   const initials = `${user.prenom[0] ?? ''}${user.nom[0] ?? ''}`.toUpperCase()
 
   return (
-    <header className="flex h-16 items-center justify-end gap-4 border-b border-zinc-200 bg-white px-6">
-      <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-zinc-50 focus:outline-none">
-          <div className="text-right">
-            <p className="text-sm font-medium text-zinc-900">
-              {user.prenom} {user.nom}
-            </p>
-            <Badge
-              variant={user.role === 'GERANT' ? 'default' : 'secondary'}
-              className="h-4 px-1.5 text-xs"
+    <header className="flex h-14 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <CommandPalette />
+
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-zinc-50 focus:outline-none dark:hover:bg-zinc-800">
+            <div className="text-right">
+              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                {user.prenom} {user.nom}
+              </p>
+              <Badge
+                variant={user.role === 'GERANT' ? 'default' : 'secondary'}
+                className="h-4 px-1.5 text-xs"
+              >
+                {user.role === 'GERANT' ? 'Gérant' : 'Vendeur'}
+              </Badge>
+            </div>
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-green-100 text-xs font-semibold text-green-700 dark:bg-green-900 dark:text-green-300">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel className="text-xs text-zinc-500">{user.email}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer gap-2">
+              <User className="h-4 w-4" />
+              Mon profil
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer gap-2 text-red-600 focus:text-red-600"
+              onClick={() => signOut({ callbackUrl: '/login' })}
             >
-              {user.role === 'GERANT' ? 'Gérant' : 'Vendeur'}
-            </Badge>
-          </div>
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-green-100 text-xs font-semibold text-green-700">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuLabel className="text-xs text-zinc-500">{user.email}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="cursor-pointer gap-2">
-            <User className="h-4 w-4" />
-            Mon profil
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="cursor-pointer gap-2 text-red-600 focus:text-red-600"
-            onClick={() => signOut({ callbackUrl: '/login' })}
-          >
-            <LogOut className="h-4 w-4" />
-            Se déconnecter
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+              <LogOut className="h-4 w-4" />
+              Se déconnecter
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </header>
   )
 }

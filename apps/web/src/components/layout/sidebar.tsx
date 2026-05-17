@@ -37,12 +37,14 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-zinc-200 bg-white">
-      <div className="flex h-16 items-center gap-2 border-b border-zinc-200 px-6">
-        <span className="text-xl">🍎</span>
-        <span className="font-semibold text-zinc-900">Sous le Pommier</span>
+    <aside className="flex h-full w-60 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex h-14 items-center gap-2.5 border-b border-zinc-200 px-5 dark:border-zinc-800">
+        <span className="text-lg">🍎</span>
+        <span className="font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+          Sous le Pommier
+        </span>
       </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
         {navItems.map(({ href, label, icon: Icon, exact }) => {
           const isActive = exact ? pathname === href : pathname.startsWith(href)
           return (
@@ -50,10 +52,10 @@ export function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-green-50 text-green-700'
-                  : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'
+                  ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400'
+                  : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200'
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
