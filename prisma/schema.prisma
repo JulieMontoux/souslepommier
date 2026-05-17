@@ -47,6 +47,21 @@ enum StatutFacture {
   ANNULEE
 }
 
+enum TypeDroitRGPD {
+  ACCES
+  RECTIFICATION
+  EFFACEMENT
+  PORTABILITE
+  OPPOSITION
+}
+
+enum StatutDemandeRGPD {
+  EN_ATTENTE
+  EN_COURS
+  TRAITEE
+  REFUSEE
+}
+
 // ─── Utilisateurs ────────────────────────────────────────────────────────────
 
 model User {
@@ -324,6 +339,25 @@ model ConfigEntreprise {
   emailRGPD             String?
 
   @@map("config_entreprise")
+}
+
+// ─── RGPD ────────────────────────────────────────────────────────────────────
+
+model DemandeRGPD {
+  id          String            @id @default(cuid())
+  type        TypeDroitRGPD
+  statut      StatutDemandeRGPD @default(EN_ATTENTE)
+  nom         String
+  email       String
+  message     String?
+  reponse     String?
+  traitePar   String?
+  traiteAt    DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([statut])
+  @@map("demandes_rgpd")
 }
 
 // ─── Taux TVA ────────────────────────────────────────────────────────────────

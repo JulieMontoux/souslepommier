@@ -28,6 +28,9 @@ type AuditAction =
   | 'CREATE_TAUX_TVA'
   | 'UPDATE_TAUX_TVA'
   | 'TOGGLE_TAUX_TVA'
+  | 'CREATE_DEMANDE_RGPD'
+  | 'PROCESS_DEMANDE_RGPD'
+  | 'EXPORT_DONNEES_RGPD'
 
 export async function logAudit({
   userId,
