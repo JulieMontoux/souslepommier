@@ -67,10 +67,29 @@ export type MoisStat = {
   nbVentes: number
 }
 
+export type TVAStat = {
+  taux: number
+  montantHT: number
+  montantTVA: number
+  montantTTC: number
+}
+
+export type JourStat = {
+  date: string
+  nbVentes: number
+  caTTC: number
+}
+
+export type TopProduitAnnuel = TopProduit & { pctCA: number }
+
 export type YearStats = {
   year: number
   caHT: number
   caTTC: number
   nbVentes: number
+  panierMoyen: number
   parMois: MoisStat[]
+  topProduits: TopProduitAnnuel[]
+  parTVA: TVAStat[]
+  parJour: JourStat[]
 }

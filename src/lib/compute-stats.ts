@@ -115,6 +115,52 @@ function buildParModePaiement(finalisees: VenteWithRelations[]) {
     .sort((a, b) => b.montant - a.montant)
 }
 
+function buildParTVA(finalisees: VenteWithRelations[]) {
+  const map = new Map<number, { montantHT: number; montantTVA: number; montantTTC: number }>()
+  for (const v of finalisees) {
+    for (const l of v.lignes) {
+      const taux = Number(l.tauxTVA)
+      const cur = map.get(taux)
+      if (cur) {
+        cur.montantHT += Number(l.montantHT)
+        cur.montantTVA += Number(l.montantTVA)
+        cur.montantTTC += Number(l.montantTTC)
+      } else {
+        map.set(taux, {
+          montantHT: Number(l.montantHT),
+          montantTVA: Number(l.montantTVA),
+          montantTTC: Number(l.montantTTC),
+        })
+      }
+    }
+  }
+  return Array.from(map.entries())
+    .map(([taux, v]) => ({
+      taux,
+      montantHT: roundFiscal(v.montantHT),
+      montantTVA: roundFiscal(v.montantTVA),
+      montantTTC: roundFiscal(v.montantTTC),
+    }))
+    .sort((a, b) => a.taux - b.taux)
+}
+
+function buildParJourYear(finalisees: VenteWithRelations[]) {
+  const map = new Map<string, { nbVentes: number; caTTC: number }>()
+  for (const v of finalisees) {
+    const key = v.date.toISOString().slice(0, 10)
+    const cur = map.get(key)
+    if (cur) {
+      cur.nbVentes++
+      cur.caTTC += Number(v.totalTTC)
+    } else {
+      map.set(key, { nbVentes: 1, caTTC: Number(v.totalTTC) })
+    }
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, v]) => ({ date, nbVentes: v.nbVentes, caTTC: roundFiscal(v.caTTC) }))
+}
+
 function buildParVendeur(finalisees: VenteWithRelations[]) {
   const map = new Map<
     string,
@@ -249,5 +295,22 @@ export async function computeYearStats(db: PrismaClient, year: number): Promise<
     return { mois: m, caHT: roundFiscal(v.caHT), caTTC: roundFiscal(v.caTTC), nbVentes: v.nbVentes }
   })
 
-  return { year, caHT, caTTC, nbVentes, parMois }
+  const panierMoyen = nbVentes > 0 ? roundFiscal(caTTC / nbVentes) : 0
+  const top = buildTopProduits(finalisees, 10)
+  const topProduits = top.map((p) => ({
+    ...p,
+    pctCA: caTTC > 0 ? roundFiscal((p.caTTC / caTTC) * 100) : 0,
+  }))
+
+  return {
+    year,
+    caHT,
+    caTTC,
+    nbVentes,
+    panierMoyen,
+    parMois,
+    topProduits,
+    parTVA: buildParTVA(finalisees),
+    parJour: buildParJourYear(finalisees),
+  }
 }
