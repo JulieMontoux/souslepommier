@@ -13,6 +13,7 @@ import {
   Package,
   Building2,
   Lock,
+  ScrollText,
 } from 'lucide-react'
 
 const navItems = [
@@ -24,6 +25,7 @@ const navItems = [
   { href: '/dashboard/clotures', label: 'Clôtures', icon: Lock },
   { href: '/dashboard/statistiques', label: 'Statistiques', icon: BarChart3 },
   { href: '/dashboard/vendeurs', label: 'Vendeurs', icon: Users },
+  { href: '/dashboard/audit', label: 'Audit', icon: ScrollText },
   { href: '/dashboard/configuration', label: 'Configuration', icon: Settings },
 ]
 
