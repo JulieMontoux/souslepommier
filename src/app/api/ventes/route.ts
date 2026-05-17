@@ -130,6 +130,21 @@ export async function POST(req: Request) {
   })
 
   const now = new Date()
+  const startOfToday = new Date(now)
+  startOfToday.setHours(0, 0, 0, 0)
+  const endOfToday = new Date(now)
+  endOfToday.setHours(23, 59, 59, 999)
+
+  const clotureExistante = await prisma.clotureCaisse.findFirst({
+    where: { date: { gte: startOfToday, lte: endOfToday } },
+    select: { numeroCloture: true },
+  })
+  if (clotureExistante) {
+    return NextResponse.json(
+      { error: `Journée clôturée (clôture n°${clotureExistante.numeroCloture})` },
+      { status: 409 }
+    )
+  }
 
   const vente = await prisma.$transaction(async (tx) => {
     // Ticket number: count today's ventes

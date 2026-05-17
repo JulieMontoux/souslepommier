@@ -19,6 +19,12 @@ type AuditAction =
   | 'ANNULER_FACTURE'
   | 'CREATE_AVOIR'
   | 'CLOTURE_CAISSE'
+  | 'CREATE_USER'
+  | 'UPDATE_USER'
+  | 'DELETE_USER_RGPD'
+  | 'ACTIVATE_USER'
+  | 'DEACTIVATE_USER'
+  | 'RESET_PASSWORD'
 
 export async function logAudit({
   userId,
