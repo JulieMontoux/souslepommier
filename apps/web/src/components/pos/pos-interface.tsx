@@ -11,8 +11,10 @@ import { Badge } from '@/components/ui/badge'
 import { recapTVA, roundFiscal, calcMontantTVA } from '@/lib/tva'
 import { VariantePicker } from './variante-picker'
 import { PaiementModal } from './paiement-modal'
-import type { PaiementInput } from './paiement-modal'
 import { TicketModal } from './ticket-modal'
+import { ProductList } from './ProductList'
+import { CartPanel } from './CartPanel'
+import type { PaiementInput } from './paiement-modal'
 import type { ProduitPOS, ProduitPOSVariante, LigneCart } from '@/types/pos'
 import type { ConfigTicket } from '@/types/ticket'
 
@@ -193,142 +195,25 @@ export function POSInterface({ produits, user, config }: POSInterfaceProps) {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Catalogue */}
-        <main className="flex-1 overflow-y-auto p-4">
-          {filteredProduits.length === 0 ? (
-            <p className="mt-20 text-center text-zinc-400">Aucun produit trouvé</p>
-          ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {filteredProduits.map((produit) => {
-                const prixMin = produit.variantes.length
-                  ? Math.min(...produit.variantes.map((v) => v.prixTTC))
-                  : null
-                return (
-                  <button
-                    key={produit.id}
-                    onClick={() => addToCart(produit)}
-                    className="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-green-400 hover:shadow-md active:scale-95"
-                  >
-                    <span className="text-4xl">🍎</span>
-                    <p className="text-center text-sm leading-tight font-medium text-zinc-800">
-                      {produit.nom}
-                    </p>
-                    {produit.categorieNom && (
-                      <Badge variant="secondary" className="text-xs">
-                        {produit.categorieNom}
-                      </Badge>
-                    )}
-                    {prixMin !== null && (
-                      <p className="text-sm font-bold text-green-700">
-                        {prixMin.toFixed(2).replace('.', ',')} €
-                      </p>
-                    )}
-                    {produit.variantes.length > 1 && (
-                      <p className="text-xs text-zinc-400">{produit.variantes.length} variantes</p>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </main>
+        <ProductList produits={produits} onProductSelect={addToCart} />
 
         {/* Panier */}
-        <aside className="flex w-80 shrink-0 flex-col border-l border-zinc-200 bg-white">
-          {/* Panier header */}
-          <div className="flex items-center gap-2 border-b border-zinc-100 px-4 py-3">
-            <ShoppingCart className="h-4 w-4 text-zinc-500" />
-            <span className="font-semibold text-zinc-800">Panier</span>
-            {cart.length > 0 && (
-              <button
-                onClick={() => setCart([])}
-                className="ml-auto text-xs text-zinc-400 hover:text-red-500"
-              >
-                Vider
-              </button>
-            )}
-          </div>
-
-          {/* Lignes */}
-          <div className="flex-1 overflow-y-auto">
-            {cart.length === 0 ? (
-              <p className="mt-12 text-center text-sm text-zinc-400">Panier vide</p>
-            ) : (
-              <ul className="divide-y divide-zinc-50">
-                {lignesComputed.map((ligne) => (
-                  <li key={ligne.key} className="flex items-start gap-2 px-4 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-zinc-800">
-                        {ligne.produitNom}
-                      </p>
-                      <p className="truncate text-xs text-zinc-400">{ligne.varianteLabel}</p>
-                      <p className="mt-0.5 text-sm font-bold text-zinc-900">
-                        {ligne.montantTTC.toFixed(2).replace('.', ',')} €
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        onClick={() => updateQte(ligne.key, roundFiscal(ligne.qte - 1))}
-                        className="flex h-7 w-7 items-center justify-center rounded border border-zinc-200 text-zinc-500 hover:bg-zinc-50"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <input
-                        type="number"
-                        value={ligne.qte}
-                        min="0.001"
-                        step="0.001"
-                        onChange={(e) => updateQte(ligne.key, parseFloat(e.target.value))}
-                        className="w-14 rounded border border-zinc-200 px-1 py-0.5 text-center text-sm"
-                      />
-                      <button
-                        onClick={() => updateQte(ligne.key, roundFiscal(ligne.qte + 1))}
-                        className="flex h-7 w-7 items-center justify-center rounded border border-zinc-200 text-zinc-500 hover:bg-zinc-50"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={() => removeLine(ligne.key)}
-                        className="flex h-7 w-7 items-center justify-center rounded text-zinc-300 hover:text-red-500"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Totaux */}
-          <div className="space-y-1 border-t border-zinc-100 px-4 py-3">
-            <div className="flex justify-between text-sm text-zinc-600">
-              <span>Total HT</span>
-              <span>{totalHT.toFixed(2).replace('.', ',')} €</span>
-            </div>
-            {tvaRecap.map((t) => (
-              <div key={t.taux} className="flex justify-between text-xs text-zinc-400">
-                <span>TVA {t.taux}%</span>
-                <span>{t.montantTVA.toFixed(2).replace('.', ',')} €</span>
-              </div>
-            ))}
-            <div className="flex justify-between border-t border-zinc-100 pt-2 text-lg font-bold text-zinc-900">
-              <span>TOTAL</span>
-              <span>{totalTTC.toFixed(2).replace('.', ',')} €</span>
-            </div>
-          </div>
-
-          {/* Bouton payer */}
-          <div className="px-4 pb-4">
-            <Button
-              className="h-14 w-full gap-2 text-base font-bold"
-              disabled={cart.length === 0}
-              onClick={() => setConfirming(true)}
-            >
-              💳 {cart.length > 0 ? `Payer ${totalTTC.toFixed(2).replace('.', ',')} €` : 'Payer'}
-            </Button>
-            <p className="mt-1.5 text-center text-xs text-zinc-400">ou appuyez sur Entrée</p>
-          </div>
-        </aside>
+        <CartPanel
+          cart={cart}
+          onUpdateQte={updateQte}
+          onRemoveLine={removeLine}
+          onClearCart={() => setCart([])}
+          onConfirmPayment={handleEncaisser}
+          setConfirming={setConfirming}
+          setSaving={setSaving}
+          totalHT={totalHT}
+          totalTTC={totalTTC}
+          tvaRecap={tvaRecap}
+          config={config}
+          lastVente={lastVente}
+          setLastVente={setLastVente}
+          router={router}
+        />
       </div>
 
       {/* Variante picker */}
