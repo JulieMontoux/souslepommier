@@ -140,4 +140,17 @@ export class ProduitsService {
       select: { id: true, actif: true },
     })
   }
+
+  async findVarianteById(id: string) {
+    const variante = await this.prisma.varianteProduit.findUnique({ where: { id } })
+    if (!variante) throw new NotFoundException('Variante introuvable')
+    return variante
+  }
+
+  findVariantes(produitId?: string) {
+    return this.prisma.varianteProduit.findMany({
+      where: produitId ? { produitId } : {},
+      orderBy: { poids: 'asc' },
+    })
+  }
 }

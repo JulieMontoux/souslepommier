@@ -1,7 +1,10 @@
 {
   "name": "souslepommier-monorepo",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
@@ -16,5 +19,8 @@
   "devDependencies": {
     "turbo": "^2.5.4",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "cmdk": "^1.1.1"
   }
 }

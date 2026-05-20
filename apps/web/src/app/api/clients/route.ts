@@ -1,88 +1,72 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/api-auth'
 import { logAudit } from '@/lib/audit'
 import { clientCreateSchema } from '@/lib/validations/client'
+import { apiProxy } from '@/lib/api-proxy'
+import type { Client } from '@souslepommier/database'
 
 export async function GET(req: Request) {
-  const { error, session } = await requireAuth()
-  if (error) return error
+  const authResult = await requireAuth()
+  if (authResult.error) return authResult.error
+  const session = authResult.session
+  // session is guaranteed to be non-null because error is null
+  if (!session?.user) {
+    // defensive, should not happen
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
 
-  const url = new URL(req.url)
-  const q = url.searchParams.get('q')?.trim()
-  const actifOnly = url.searchParams.get('actif') !== 'false'
+  const { searchParams } = new URL(req.url)
+  const qParam = searchParams.get('q')
+  const q = qParam?.trim()
+  const actifParam = searchParams.get('actif')
+  const actif = actifParam
 
-  const clients = await prisma.client.findMany({
-    where: {
-      ...(actifOnly ? { actif: true } : {}),
-      ...(q
-        ? {
-            OR: [
-              { raisonSociale: { contains: q, mode: 'insensitive' } },
-              { siret: { contains: q } },
-              { email: { contains: q, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: { raisonSociale: 'asc' },
-  })
+  // Build query parameters for NestJS API
+  const params = new URLSearchParams()
+  if (q !== undefined && q !== '') params.append('q', q)
+  if (actif !== null) params.append('actif', actif === 'false' ? 'false' : 'true')
 
-  void session
-  return NextResponse.json(clients)
+  try {
+    const clients = await apiProxy<Client[]>(`/api/clients?${params.toString()}`)
+    return NextResponse.json(clients)
+  } catch (err) {
+    const error = err as Error
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 }
 
 export async function POST(req: Request) {
-  const { error, session } = await requireAuth(['GERANT'])
-  if (error) return error
+  const authResult = await requireAuth(['GERANT'])
+  if (authResult.error) return authResult.error
+  const session = authResult.session
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
 
-  const body = await req.json().catch(() => null)
+  const body = await req.json()
   const parsed = clientCreateSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 422 })
   }
 
-  const {
-    siret,
-    tvaIntracommunautaire,
-    codePostal,
-    email,
-    telephone,
-    adresse,
-    ville,
-    notes,
-    ...rest
-  } = parsed.data
+  try {
+    const client = await apiProxy<Client>(`/api/clients`, {
+      method: 'POST',
+      body: parsed.data,
+    })
 
-  if (siret) {
-    const existing = await prisma.client.findUnique({ where: { siret } })
-    if (existing) {
-      return NextResponse.json({ error: 'Un client avec ce SIRET existe déjà' }, { status: 409 })
-    }
+    const userId = (session?.user as { id?: string })?.id
+    await logAudit({
+      userId,
+      action: 'CREATE',
+      entite: 'Client',
+      entiteId: client.id,
+      nouvelleValeur: { raisonSociale: client.raisonSociale },
+    })
+
+    return NextResponse.json(client, { status: 201 })
+  } catch (err) {
+    const error = err as Error
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
-
-  const client = await prisma.client.create({
-    data: {
-      ...rest,
-      siret: siret ?? null,
-      tvaIntracommunautaire: tvaIntracommunautaire ?? null,
-      adresse: adresse ?? null,
-      codePostal: codePostal ?? null,
-      ville: ville ?? null,
-      email: email ?? null,
-      telephone: telephone ?? null,
-      notes: notes ?? null,
-    },
-  })
-
-  const userId = (session?.user as { id?: string })?.id
-  await logAudit({
-    userId,
-    action: 'CREATE',
-    entite: 'Client',
-    entiteId: client.id,
-    nouvelleValeur: { raisonSociale: client.raisonSociale },
-  })
-
-  return NextResponse.json(client, { status: 201 })
 }

@@ -1,46 +1,91 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/api-auth'
-import { varianteSchema } from '@/lib/validations/produit'
-import { calcPrixTTC } from '@/lib/tva'
-import { logAudit } from '@/lib/audit'
+import { z } from 'zod'
+import { apiProxy } from '@/lib/api-proxy'
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { error, session } = await requireAuth(['GERANT'])
-  if (error) return error
+const updateVarianteSchema = z.object({
+  prixHT: z.number().min(0).optional(),
+  tauxTVA: z.number().min(0).optional(),
+  emballage: z.enum(['VRAC', 'BARQUETTE', 'FILET', 'SAC', 'CAISSE', 'PLATEAU']).optional(),
+  poids: z.number().min(0).optional(),
+  sku: z.string().optional(),
+})
 
-  const { id } = await params
-  const existing = await prisma.varianteProduit.findUnique({ where: { id } })
-  if (!existing) return NextResponse.json({ error: 'Variante introuvable' }, { status: 404 })
+export async function GET(req: Request, { params }: { params: { id: string } }) {
+  const authResult = await requireAuth()
+  if (authResult.error) return authResult.error
+  const session = authResult.session
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
+  try {
+    const variante = await apiProxy(`/api/variantes/${params.id}`)
+    return NextResponse.json(variante)
+  } catch (err) {
+    const error = err as Error
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
+
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  const authResult = await requireAuth(['GERANT'])
+  if (authResult.error) return authResult.error
+  const session = authResult.session
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
 
   const body = await req.json()
-  const parsed = varianteSchema.safeParse(body)
+  const parsed = updateVarianteSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
-      { error: 'Données invalides', details: parsed.error.flatten() },
+      { error: 'Données invalides', details: parsed.error.format() },
       { status: 422 }
     )
   }
 
-  const { poids, emballage, prixHT, tauxTVA, actif } = parsed.data
-  const prixTTC = calcPrixTTC(prixHT, tauxTVA)
+  try {
+    const variante = await apiProxy(`/api/variantes/${params.id}`, {
+      method: 'PUT',
+      body: parsed.data,
+    })
+    return NextResponse.json(variante)
+  } catch (err) {
+    const error = err as Error
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
 
-  // SKU : conserver l'existant si non fourni
-  const sku = parsed.data.sku?.trim() || existing.sku
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+  const authResult = await requireAuth(['GERANT'])
+  if (authResult.error) return authResult.error
+  const session = authResult.session
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
 
-  const variante = await prisma.varianteProduit.update({
-    where: { id },
-    data: { poids: poids ?? null, emballage, prixHT, tauxTVA, prixTTC, sku, actif },
+  const body = await req.json()
+  // For toggle actif, we expect { actif: boolean }
+  const toggleSchema = z.object({
+    actif: z.boolean(),
   })
+  const parsed = toggleSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Données invalides', details: parsed.error.format() },
+      { status: 422 }
+    )
+  }
 
-  await logAudit({
-    userId: session!.user.id,
-    action: 'UPDATE',
-    entite: 'VarianteProduit',
-    entiteId: id,
-    ancienneValeur: existing as Record<string, unknown>,
-    nouvelleValeur: { poids, emballage, prixHT, tauxTVA, prixTTC },
-  })
-
-  return NextResponse.json(variante)
+  try {
+    const variante = await apiProxy(`/api/variantes/${params.id}/statut`, {
+      method: 'PATCH',
+      body: parsed.data,
+    })
+    return NextResponse.json(variante)
+  } catch (err) {
+    const error = err as Error
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 }

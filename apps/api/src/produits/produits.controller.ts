@@ -60,6 +60,15 @@ class ToggleActifDto {
   @IsBoolean() actif!: boolean
 }
 
+export class CreateVarianteFlatDto {
+  @IsString() produitId!: string
+  @IsNumber() @Min(0) @Type(() => Number) prixHT!: number
+  @IsNumber() @Min(0) @Type(() => Number) tauxTVA!: number
+  @IsOptional() @IsEnum(['VRAC', 'BARQUETTE', 'FILET', 'SAC', 'CAISSE', 'PLATEAU']) emballage?: string
+  @IsOptional() @IsNumber() @Min(0) @Type(() => Number) poids?: number
+  @IsOptional() @IsString() sku?: string
+}
+
 @ApiTags('produits')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -115,6 +124,23 @@ export class ProduitsController {
 @Controller('variantes')
 export class VariantesController {
   constructor(private readonly produits: ProduitsService) {}
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.produits.findVarianteById(id)
+  }
+
+  @Get()
+  findAll(@Query('produitId') produitId?: string) {
+    return this.produits.findVariantes(produitId)
+  }
+
+  @Post()
+  @Roles('GERANT')
+  createFlat(@Body() dto: CreateVarianteFlatDto) {
+    const { produitId, ...varianteDto } = dto
+    return this.produits.createVariante(produitId, varianteDto)
+  }
 
   @Put(':id')
   update(@Param('id') id: string, @Body() dto: UpdateVarianteDto) {
