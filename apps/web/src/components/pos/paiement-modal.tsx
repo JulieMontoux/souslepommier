@@ -12,6 +12,7 @@ export type PaiementInput = {
   mode: ModeReglement
   montant: number
   reference?: string
+  renduMonnaie?: number
 }
 
 const MODE_CONFIG: Record<

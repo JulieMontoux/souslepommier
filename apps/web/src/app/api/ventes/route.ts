@@ -37,8 +37,11 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const { error } = await requireAuth()
+  const { error, session } = await requireAuth()
   if (error) return error
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
 
   const body = await req.json()
   const parsed = venteCreateSchema.safeParse(body)
@@ -52,10 +55,13 @@ export async function POST(req: Request) {
   try {
     const vente = await apiProxy<Vente>(`/api/ventes`, {
       method: 'POST',
-      body: parsed.data,
+      body: {
+        ...parsed.data,
+        vendeurId: (session.user as { id?: string })?.id,
+      },
     })
 
-    const userId = (session?.user as { id?: string })?.id
+    const userId = (session.user as { id?: string })?.id
     await logAudit({
       userId,
       action: 'CREATE_VENTE',

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Trash2, Plus, Minus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { roundFiscal, calcMontantTVA } from '@/lib/tva'
 import type { LigneCart } from '@/types/pos'
 
 interface CartItemProps {
@@ -13,13 +14,17 @@ interface CartItemProps {
 }
 
 export function CartItem({ ligne, onUpdateQte, onRemoveLine }: CartItemProps) {
+  const montantHT = roundFiscal(ligne.prixUnitaireHT * ligne.qte)
+  const montantTVA = calcMontantTVA(montantHT, ligne.tauxTVA)
+  const montantTTC = roundFiscal(montantHT + montantTVA)
+
   return (
     <li key={ligne.key} className="flex items-start gap-2 px-4 py-3">
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-zinc-800">{ligne.produitNom}</p>
         <p className="truncate text-xs text-zinc-400">{ligne.varianteLabel}</p>
         <p className="mt-0.5 text-sm font-bold text-zinc-900">
-          {ligne.montantTTC.toFixed(2).replace('.', ',')} €
+          {montantTTC.toFixed(2).replace('.', ',')} €
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1">
