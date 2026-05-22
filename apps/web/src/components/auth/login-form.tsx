@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Leaf } from 'lucide-react'
 import { loginAction } from '@/app/(auth)/login/actions'
 
 const schema = z.object({
@@ -56,8 +57,8 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-sm shadow-lg">
       <CardHeader className="space-y-1 text-center">
-        <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-2xl">
-          🍎
+        <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-600">
+          <Leaf className="h-6 w-6 text-white" />
         </div>
         <CardTitle className="text-2xl font-bold">Sous le Pommier</CardTitle>
         <CardDescription>Connectez-vous à votre espace caisse</CardDescription>

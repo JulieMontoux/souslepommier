@@ -4,10 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { toast } from 'sonner'
-import { Search, Trash2, LogOut, ShoppingCart, Plus, Minus } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { LogOut, Leaf } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { recapTVA, roundFiscal, calcMontantTVA } from '@/lib/tva'
 import { VariantePicker } from './variante-picker'
 import { PaiementModal } from './paiement-modal'
@@ -43,16 +41,11 @@ interface POSInterfaceProps {
 
 export function POSInterface({ produits, user, config }: POSInterfaceProps) {
   const router = useRouter()
-  const [search, setSearch] = useState('')
   const [cart, setCart] = useState<LigneCart[]>([])
   const [picking, setPicking] = useState<ProduitPOS | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [saving, setSaving] = useState(false)
   const [lastVente, setLastVente] = useState<{ id: string; numeroTicket: string } | null>(null)
-
-  const filteredProduits = produits.filter(
-    (p) => !search || p.nom.toLowerCase().includes(search.toLowerCase())
-  )
 
   function addToCart(produit: ProduitPOS) {
     if (produit.variantes.length === 0) {
@@ -161,31 +154,24 @@ export function POSInterface({ produits, user, config }: POSInterfaceProps) {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-100">
+    <div className="flex h-screen flex-col bg-zinc-100 dark:bg-zinc-950">
       {/* Header */}
-      <header className="flex h-14 shrink-0 items-center justify-between bg-white px-4 shadow-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🍎</span>
-          <span className="font-semibold text-zinc-800">Caisse</span>
-        </div>
-        <div className="relative w-72">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-          <Input
-            placeholder="Rechercher un produit…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-9 pl-9"
-          />
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-600">
+            <Leaf className="h-4 w-4 text-white" />
+          </div>
+          <span className="font-semibold text-zinc-800 dark:text-zinc-100">Caisse</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-zinc-600">
+          <span className="text-sm text-zinc-600 dark:text-zinc-400">
             {user.prenom} {user.nom}
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => signOut({ callbackUrl: '/login' })}
-            className="gap-1.5 text-zinc-500"
+            className="gap-1.5 text-zinc-500 dark:text-zinc-400"
           >
             <LogOut className="h-4 w-4" />
             Quitter

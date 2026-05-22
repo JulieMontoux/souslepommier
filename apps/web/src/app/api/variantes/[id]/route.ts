@@ -11,7 +11,7 @@ const updateVarianteSchema = z.object({
   sku: z.string().optional(),
 })
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
   const authResult = await requireAuth()
   if (authResult.error) return authResult.error
   const session = authResult.session
@@ -19,8 +19,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
+  const { id } = await context.params
   try {
-    const variante = await apiProxy(`/api/variantes/${params.id}`)
+    const variante = await apiProxy(`/api/variantes/${id}`)
     return NextResponse.json(variante)
   } catch (err) {
     const error = err as Error
@@ -28,7 +29,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
   const authResult = await requireAuth(['GERANT'])
   if (authResult.error) return authResult.error
   const session = authResult.session
@@ -36,6 +37,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
+  const { id } = await context.params
   const body = await req.json()
   const parsed = updateVarianteSchema.safeParse(body)
   if (!parsed.success) {
@@ -46,7 +48,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 
   try {
-    const variante = await apiProxy(`/api/variantes/${params.id}`, {
+    const variante = await apiProxy(`/api/variantes/${id}`, {
       method: 'PUT',
       body: parsed.data,
     })
@@ -57,7 +59,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
   const authResult = await requireAuth(['GERANT'])
   if (authResult.error) return authResult.error
   const session = authResult.session
@@ -65,11 +67,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
+  const { id } = await context.params
   const body = await req.json()
-  // For toggle actif, we expect { actif: boolean }
-  const toggleSchema = z.object({
-    actif: z.boolean(),
-  })
+  const toggleSchema = z.object({ actif: z.boolean() })
   const parsed = toggleSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
@@ -79,7 +79,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 
   try {
-    const variante = await apiProxy(`/api/variantes/${params.id}/statut`, {
+    const variante = await apiProxy(`/api/variantes/${id}/statut`, {
       method: 'PATCH',
       body: parsed.data,
     })
