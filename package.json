@@ -16,6 +16,7 @@
     "db:seed": "npm run db:seed --workspace=packages/database",
     "db:studio": "npm run db:studio --workspace=packages/database"
   },
+  "packageManager": "npm@10.9.2",
   "devDependencies": {
     "turbo": "^2.5.4",
     "typescript": "^5.8.3"

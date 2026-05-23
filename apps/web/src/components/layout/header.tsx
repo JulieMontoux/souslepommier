@@ -13,7 +13,6 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { LogOut, User } from 'lucide-react'
 import { CommandPalette } from './command-palette'
-import { ThemeToggle } from './theme-toggle'
 
 interface HeaderProps {
   user: {
@@ -32,8 +31,6 @@ export function Header({ user }: HeaderProps) {
       <CommandPalette />
 
       <div className="flex items-center gap-2">
-        <ThemeToggle />
-
         <DropdownMenu>
           <DropdownMenuTrigger className="hover:bg-muted flex items-center gap-3 rounded-lg px-2 py-1.5 focus:outline-none">
             <div className="text-right">
@@ -48,7 +45,7 @@ export function Header({ user }: HeaderProps) {
               </Badge>
             </div>
             <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-green-100 text-xs font-semibold text-green-700 dark:bg-green-900 dark:text-green-300">
+              <AvatarFallback className="bg-green-100 text-xs font-semibold text-green-700">
                 {initials}
               </AvatarFallback>
             </Avatar>

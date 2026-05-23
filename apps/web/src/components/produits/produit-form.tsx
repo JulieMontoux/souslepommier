@@ -274,7 +274,12 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
               onValueChange={(v) => setValue('categorieId', v || undefined)}
             >
               <SelectTrigger id="categorieId">
-                <SelectValue placeholder="Sélectionner…" />
+                <span className="flex-1 text-left text-sm">
+                  {watch('categorieId')
+                    ? (categories.find((c) => c.id === watch('categorieId'))?.nom ??
+                      'Sans catégorie')
+                    : 'Sélectionner…'}
+                </span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Sans catégorie</SelectItem>

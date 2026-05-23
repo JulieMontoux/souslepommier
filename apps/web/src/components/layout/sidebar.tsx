@@ -66,8 +66,8 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="bg-sidebar flex h-full w-58 shrink-0 flex-col">
-      <div className="border-sidebar-border flex h-14 shrink-0 items-center gap-2.5 border-b px-5">
+    <aside className="border-sidebar-border bg-sidebar flex h-full w-56 shrink-0 flex-col border-r">
+      <div className="border-sidebar-border flex h-14 shrink-0 items-center gap-2.5 border-b px-4">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-green-500">
           <Leaf className="h-4 w-4 text-white" />
         </div>
@@ -76,9 +76,9 @@ export function Sidebar() {
         </span>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-3">
+      <nav className="flex-1 overflow-y-auto px-2 py-3">
         {navGroups.map((group, i) => (
-          <div key={i} className={cn('mb-1', i > 0 && 'mt-5')}>
+          <div key={i} className={cn('mb-1', i > 0 && 'mt-4')}>
             {group.label && (
               <p className="text-sidebar-foreground/40 mb-1 px-2 text-[10px] font-semibold tracking-widest uppercase">
                 {group.label}
@@ -95,10 +95,10 @@ export function Sidebar() {
                         'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors',
                         isActive
                           ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                          : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                       )}
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      <Icon className={cn('h-4 w-4 shrink-0', isActive && 'text-green-600')} />
                       {label}
                     </Link>
                   </li>

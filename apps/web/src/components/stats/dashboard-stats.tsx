@@ -41,7 +41,7 @@ function pct(current: number, previous: number): number | null {
 
 function Trend({ current, previous }: { current: number; previous: number }) {
   const p = pct(current, previous)
-  if (p === null) return <span className="text-xs text-zinc-400">—</span>
+  if (p === null) return <span className="text-muted-foreground text-xs">—</span>
   const positive = p >= 0
   return (
     <span
@@ -81,7 +81,7 @@ export function DashboardStats({ initialStats }: DashboardStatsProps) {
       {/* Sélecteur date + titre */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-zinc-500">
+          <p className="text-muted-foreground text-sm">
             {new Date(stats.date).toLocaleDateString('fr-FR', {
               weekday: 'long',
               day: 'numeric',
@@ -95,7 +95,7 @@ export function DashboardStats({ initialStats }: DashboardStatsProps) {
           value={selectedDate}
           max={new Date().toISOString().slice(0, 10)}
           onChange={(e) => handleDateChange(e.target.value)}
-          className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
+          className="border-border text-foreground focus:border-ring rounded-md border px-3 py-1.5 text-sm focus:outline-none"
         />
       </div>
 
@@ -127,17 +127,17 @@ export function DashboardStats({ initialStats }: DashboardStatsProps) {
       </div>
 
       {stats.nbVentes === 0 ? (
-        <div className="rounded-xl border border-zinc-200 bg-white py-12 text-center shadow-sm">
-          <Minus className="mx-auto mb-2 h-6 w-6 text-zinc-300" />
-          <p className="text-sm text-zinc-400">Aucune vente ce jour</p>
+        <div className="border-border bg-card rounded-xl border py-12 text-center shadow-sm">
+          <Minus className="text-muted-foreground/40 mx-auto mb-2 h-6 w-6" />
+          <p className="text-muted-foreground text-sm">Aucune vente ce jour</p>
         </div>
       ) : (
         <>
           {/* Charts row */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Courbe horaire */}
-            <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm lg:col-span-2">
-              <h2 className="mb-4 text-xs font-semibold tracking-wide text-zinc-400 uppercase">
+            <div className="border-border bg-card rounded-xl border p-5 shadow-sm lg:col-span-2">
+              <h2 className="text-muted-foreground mb-4 text-xs font-semibold tracking-wide uppercase">
                 Ventes par heure
               </h2>
               {stats.parHeure.length > 0 ? (
@@ -165,13 +165,13 @@ export function DashboardStats({ initialStats }: DashboardStatsProps) {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="py-8 text-center text-sm text-zinc-300">Aucune donnée</p>
+                <p className="text-muted-foreground/50 py-8 text-center text-sm">Aucune donnée</p>
               )}
             </div>
 
             {/* Donut modes paiement */}
-            <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 text-xs font-semibold tracking-wide text-zinc-400 uppercase">
+            <div className="border-border bg-card rounded-xl border p-5 shadow-sm">
+              <h2 className="text-muted-foreground mb-4 text-xs font-semibold tracking-wide uppercase">
                 Modes de paiement
               </h2>
               {stats.parModePaiement.length > 0 ? (
@@ -205,7 +205,7 @@ export function DashboardStats({ initialStats }: DashboardStatsProps) {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="py-8 text-center text-sm text-zinc-300">Aucune donnée</p>
+                <p className="text-muted-foreground/50 py-8 text-center text-sm">Aucune donnée</p>
               )}
             </div>
           </div>
@@ -214,27 +214,27 @@ export function DashboardStats({ initialStats }: DashboardStatsProps) {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Top 5 produits */}
             {stats.topProduits.length > 0 && (
-              <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <h2 className="mb-4 text-xs font-semibold tracking-wide text-zinc-400 uppercase">
+              <div className="border-border bg-card rounded-xl border p-5 shadow-sm">
+                <h2 className="text-muted-foreground mb-4 text-xs font-semibold tracking-wide uppercase">
                   Top produits
                 </h2>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-xs text-zinc-400">
+                    <tr className="text-muted-foreground text-xs">
                       <th className="pb-2 text-left font-medium">Produit</th>
                       <th className="pb-2 text-right font-medium">Qté</th>
                       <th className="pb-2 text-right font-medium">CA TTC</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-50">
+                  <tbody className="divide-border divide-y">
                     {stats.topProduits.map((p, i) => (
                       <tr key={p.produitId}>
-                        <td className="py-1.5 text-zinc-700">
+                        <td className="text-foreground py-1.5">
                           <span className="mr-2 text-xs text-zinc-300">{i + 1}</span>
                           {p.nom}
                         </td>
-                        <td className="py-1.5 text-right text-zinc-500">{p.qte}</td>
-                        <td className="py-1.5 text-right font-medium text-zinc-900">
+                        <td className="text-muted-foreground py-1.5 text-right">{p.qte}</td>
+                        <td className="text-foreground py-1.5 text-right font-medium">
                           {fmt(p.caTTC)}
                         </td>
                       </tr>
@@ -246,8 +246,8 @@ export function DashboardStats({ initialStats }: DashboardStatsProps) {
 
             {/* Perf vendeurs */}
             {stats.parVendeur.length > 0 && (
-              <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <h2 className="mb-4 text-xs font-semibold tracking-wide text-zinc-400 uppercase">
+              <div className="border-border bg-card rounded-xl border p-5 shadow-sm">
+                <h2 className="text-muted-foreground mb-4 text-xs font-semibold tracking-wide uppercase">
                   Performance vendeurs
                 </h2>
                 <ResponsiveContainer
@@ -301,16 +301,16 @@ function KpiCard({
   variant?: 'neutral' | 'warn'
 }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-zinc-500">{label}</p>
+    <div className="border-border bg-card rounded-lg border p-5 shadow-sm">
+      <p className="text-muted-foreground text-sm font-medium">{label}</p>
       <p
-        className={`mt-1 text-2xl font-bold ${variant === 'warn' && value !== '0' ? 'text-amber-600' : 'text-zinc-900'}`}
+        className={`mt-1 text-2xl font-bold ${variant === 'warn' && value !== '0' ? 'text-amber-600' : 'text-card-foreground'}`}
       >
         {value}
       </p>
       <div className="mt-1 flex items-center gap-2">
         {trend}
-        {sub && <span className="text-xs text-zinc-400">{sub}</span>}
+        {sub && <span className="text-muted-foreground text-xs">{sub}</span>}
       </div>
     </div>
   )

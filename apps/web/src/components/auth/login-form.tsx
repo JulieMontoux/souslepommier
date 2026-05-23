@@ -55,10 +55,10 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="relative z-10 w-full max-w-sm border-white/10 bg-white/95 shadow-2xl backdrop-blur-sm">
+    <Card className="relative z-10 w-full max-w-sm border-slate-200 bg-white shadow-2xl">
       <CardHeader className="space-y-1 pb-4 text-center">
-        <div className="mx-auto mb-3 flex h-13 w-13 items-center justify-center rounded-2xl bg-green-600 shadow-lg shadow-green-900/40">
-          <Leaf className="h-7 w-7 text-white" />
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-600 shadow-lg shadow-green-900/40">
+          <Leaf className="h-6 w-6 text-white" />
         </div>
         <CardTitle className="text-xl font-semibold text-slate-900">Sous le Pommier</CardTitle>
         <CardDescription className="text-slate-500">
@@ -74,7 +74,9 @@ export function LoginForm() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-slate-700">
+              Email
+            </Label>
             <Input
               id="email"
               name="email"
@@ -83,12 +85,15 @@ export function LoginForm() {
               autoComplete="email"
               disabled={isPending}
               required
+              className="border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:ring-green-500"
             />
             {fieldErrors.email && <p className="text-sm text-red-500">{fieldErrors.email}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Mot de passe</Label>
+            <Label htmlFor="password" className="text-slate-700">
+              Mot de passe
+            </Label>
             <Input
               id="password"
               name="password"
@@ -96,11 +101,16 @@ export function LoginForm() {
               autoComplete="current-password"
               disabled={isPending}
               required
+              className="border-slate-300 bg-white text-slate-900 focus-visible:ring-green-500"
             />
             {fieldErrors.password && <p className="text-sm text-red-500">{fieldErrors.password}</p>}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isPending}>
+          <Button
+            type="submit"
+            className="w-full bg-green-600 text-white hover:bg-green-700"
+            disabled={isPending}
+          >
             {isPending ? 'Connexion…' : 'Se connecter'}
           </Button>
         </form>

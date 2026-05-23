@@ -125,7 +125,11 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
         </Select>
         <Select value={filterCategorie} onValueChange={(v) => setFilterCategorie(v ?? 'tous')}>
           <SelectTrigger className="w-44">
-            <SelectValue placeholder="Catégorie" />
+            <span className="flex-1 text-left text-sm">
+              {filterCategorie === 'tous'
+                ? 'Toutes catégories'
+                : (categories.find((c) => c.id === filterCategorie)?.nom ?? 'Catégorie')}
+            </span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="tous">Toutes catégories</SelectItem>
