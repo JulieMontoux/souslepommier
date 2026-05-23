@@ -154,24 +154,24 @@ export function POSInterface({ produits, user, config }: POSInterfaceProps) {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-100 dark:bg-zinc-950">
+    <div className="bg-background flex h-screen flex-col">
       {/* Header */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <header className="border-sidebar-border bg-sidebar flex h-14 shrink-0 items-center justify-between border-b px-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-600">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-500">
             <Leaf className="h-4 w-4 text-white" />
           </div>
-          <span className="font-semibold text-zinc-800 dark:text-zinc-100">Caisse</span>
+          <span className="text-sidebar-foreground font-semibold">Caisse</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-zinc-600 dark:text-zinc-400">
+          <span className="text-sidebar-foreground/70 text-sm">
             {user.prenom} {user.nom}
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => signOut({ callbackUrl: '/login' })}
-            className="gap-1.5 text-zinc-500 dark:text-zinc-400"
+            className="text-sidebar-foreground/60 hover:text-sidebar-foreground gap-1.5"
           >
             <LogOut className="h-4 w-4" />
             Quitter

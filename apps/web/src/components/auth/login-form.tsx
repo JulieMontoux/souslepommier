@@ -55,13 +55,15 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm shadow-lg">
-      <CardHeader className="space-y-1 text-center">
-        <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-600">
-          <Leaf className="h-6 w-6 text-white" />
+    <Card className="relative z-10 w-full max-w-sm border-white/10 bg-white/95 shadow-2xl backdrop-blur-sm">
+      <CardHeader className="space-y-1 pb-4 text-center">
+        <div className="mx-auto mb-3 flex h-13 w-13 items-center justify-center rounded-2xl bg-green-600 shadow-lg shadow-green-900/40">
+          <Leaf className="h-7 w-7 text-white" />
         </div>
-        <CardTitle className="text-2xl font-bold">Sous le Pommier</CardTitle>
-        <CardDescription>Connectez-vous à votre espace caisse</CardDescription>
+        <CardTitle className="text-xl font-semibold text-slate-900">Sous le Pommier</CardTitle>
+        <CardDescription className="text-slate-500">
+          Connectez-vous à votre espace caisse
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

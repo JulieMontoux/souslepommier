@@ -28,16 +28,16 @@ export function Header({ user }: HeaderProps) {
   const initials = `${user.prenom[0] ?? ''}${user.nom[0] ?? ''}`.toUpperCase()
 
   return (
-    <header className="flex h-14 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6 dark:border-zinc-800 dark:bg-zinc-900">
+    <header className="border-border bg-card flex h-14 items-center justify-between gap-4 border-b px-6">
       <CommandPalette />
 
       <div className="flex items-center gap-2">
         <ThemeToggle />
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-zinc-50 focus:outline-none dark:hover:bg-zinc-800">
+          <DropdownMenuTrigger className="hover:bg-muted flex items-center gap-3 rounded-lg px-2 py-1.5 focus:outline-none">
             <div className="text-right">
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+              <p className="text-foreground text-sm font-medium">
                 {user.prenom} {user.nom}
               </p>
               <Badge

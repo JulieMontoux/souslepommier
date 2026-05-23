@@ -49,53 +49,53 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.984 0.003 247);
+  --foreground: oklch(0.129 0.028 261);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.129 0.028 261);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.129 0.028 261);
   --primary: oklch(0.527 0.154 150.069);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --secondary: oklch(0.966 0.007 247);
+  --secondary-foreground: oklch(0.21 0.022 261);
+  --muted: oklch(0.966 0.007 247);
+  --muted-foreground: oklch(0.553 0.013 255);
   --accent: oklch(0.95 0.05 150);
   --accent-foreground: oklch(0.3 0.1 150);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.928 0.013 255);
+  --input: oklch(0.928 0.013 255);
   --ring: oklch(0.527 0.154 150.069);
   --chart-1: oklch(0.696 0.202 149.769);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.769 0.188 84.386);
   --chart-4: oklch(0.637 0.237 25.331);
   --chart-5: oklch(0.618 0.252 292.717);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.5rem;
+  --sidebar: oklch(0.17 0.07 148);
+  --sidebar-foreground: oklch(0.88 0.06 148);
+  --sidebar-primary: oklch(0.45 0.14 150);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.22 0.07 148);
+  --sidebar-accent-foreground: oklch(0.95 0.05 150);
+  --sidebar-border: oklch(0.26 0.07 148);
+  --sidebar-ring: oklch(0.55 0.15 150);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  --background: oklch(0.129 0.028 261);
+  --foreground: oklch(0.984 0.003 247);
+  --card: oklch(0.168 0.025 261);
+  --card-foreground: oklch(0.984 0.003 247);
+  --popover: oklch(0.168 0.025 261);
+  --popover-foreground: oklch(0.984 0.003 247);
   --primary: oklch(0.696 0.202 149.769);
-  --primary-foreground: oklch(0.13 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
+  --primary-foreground: oklch(0.1 0.04 148);
+  --secondary: oklch(0.21 0.022 261);
+  --secondary-foreground: oklch(0.984 0.003 247);
+  --muted: oklch(0.21 0.022 261);
+  --muted-foreground: oklch(0.64 0.013 255);
   --accent: oklch(0.2 0.05 150);
   --accent-foreground: oklch(0.85 0.1 150);
   --destructive: oklch(0.704 0.191 22.216);
@@ -107,14 +107,14 @@
   --chart-3: oklch(0.828 0.189 84.429);
   --chart-4: oklch(0.704 0.191 22.216);
   --chart-5: oklch(0.702 0.183 293.541);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: oklch(0.12 0.05 148);
+  --sidebar-foreground: oklch(0.88 0.06 148);
+  --sidebar-primary: oklch(0.45 0.14 150);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.17 0.06 148);
+  --sidebar-accent-foreground: oklch(0.95 0.05 150);
+  --sidebar-border: oklch(0.22 0.06 148);
+  --sidebar-ring: oklch(0.55 0.15 150);
 }
 
 @layer base {
@@ -126,5 +126,13 @@
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-rubik), var(--font-sans), system-ui, sans-serif;
   }
 }

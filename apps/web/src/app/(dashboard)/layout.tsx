@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const user = session.user as { nom: string; prenom: string; role: string; email: string }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+    <div className="bg-background flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header user={user} />
