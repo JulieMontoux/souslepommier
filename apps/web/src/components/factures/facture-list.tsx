@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { Link } from 'react-router-dom'
 import { Search, Plus, FileText } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { buttonVariants } from '@/components/ui/button'
@@ -49,7 +49,7 @@ export function FactureList({ factures }: FactureListProps) {
             {factures.length} document{factures.length > 1 ? 's' : ''}
           </p>
         </div>
-        <Link href="/dashboard/factures/nouvelle" className={cn(buttonVariants(), 'gap-1.5')}>
+        <Link to="/dashboard/factures/nouvelle" className={cn(buttonVariants(), 'gap-1.5')}>
           <Plus className="h-4 w-4" />
           Nouvelle facture
         </Link>
@@ -136,7 +136,7 @@ export function FactureList({ factures }: FactureListProps) {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link
-                      href={`/dashboard/factures/${f.id}`}
+                      to={`/dashboard/factures/${f.id}`}
                       className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
                     >
                       Voir

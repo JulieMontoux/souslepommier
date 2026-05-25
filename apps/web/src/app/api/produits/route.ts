@@ -1,45 +1,42 @@
 import { NextResponse } from 'next/server'
+import { updateTag } from 'next/cache'
+import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/api-auth'
 import { produitSchema } from '@/lib/validations/produit'
 import { logAudit } from '@/lib/audit'
-import { apiProxy } from '@/lib/api-proxy'
-import type { Produit } from '@souslepommier/database'
 
 export async function GET(req: Request) {
-  const authResult = await requireAuth()
-  if (authResult.error) return authResult.error
-  const session = authResult.session
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-  }
+  const { error } = await requireAuth()
+  if (error) return error
 
   const { searchParams } = new URL(req.url)
-  const actif = searchParams.get('actif')
-  const categorieId = searchParams.get('categorieId')
-  const search = searchParams.get('q')
+  const search = searchParams.get('search') ?? searchParams.get('q') ?? undefined
+  const categorieId = searchParams.get('categorieId') ?? undefined
+  const actifParam = searchParams.get('actif')
+  const actif = actifParam === 'true' ? true : actifParam === 'false' ? false : undefined
 
-  // Build query parameters for NestJS API
-  const params = new URLSearchParams()
-  if (search !== null && search !== '') params.append('search', search)
-  if (categorieId !== null && categorieId !== '') params.append('categorieId', categorieId)
-  if (actif !== null) params.append('actif', actif)
+  const produits = await prisma.produit.findMany({
+    where: {
+      ...(search && { nom: { contains: search, mode: 'insensitive' } }),
+      ...(categorieId && { categorieId }),
+      ...(actif !== undefined && { actif }),
+    },
+    include: {
+      categorie: { select: { id: true, nom: true } },
+      variantes: {
+        where: actif !== undefined ? { actif } : undefined,
+        orderBy: { poids: 'asc' },
+      },
+    },
+    orderBy: { nom: 'asc' },
+  })
 
-  try {
-    const produits = await apiProxy<Produit[]>(`/api/produits?${params.toString()}`)
-    return NextResponse.json(produits)
-  } catch (err) {
-    const error = err as Error
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  return NextResponse.json(produits)
 }
 
 export async function POST(req: Request) {
-  const authResult = await requireAuth(['GERANT'])
-  if (authResult.error) return authResult.error
-  const session = authResult.session
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-  }
+  const { error, session } = await requireAuth(['GERANT'])
+  if (error) return error
 
   const body = await req.json()
   const parsed = produitSchema.safeParse(body)
@@ -50,23 +47,24 @@ export async function POST(req: Request) {
     )
   }
 
-  try {
-    const produit = await apiProxy<Produit>(`/api/produits`, {
-      method: 'POST',
-      body: parsed.data,
-    })
+  const produit = await prisma.produit.create({
+    data: {
+      nom: parsed.data.nom,
+      ...(parsed.data.categorieId && { categorieId: parsed.data.categorieId }),
+      ...(parsed.data.description !== undefined && { description: parsed.data.description }),
+      ...(parsed.data.image !== undefined && { image: parsed.data.image }),
+    },
+    include: { categorie: true, variantes: true },
+  })
 
-    await logAudit({
-      userId: session!.user.id,
-      action: 'CREATE',
-      entite: 'Produit',
-      entiteId: produit.id,
-      nouvelleValeur: parsed.data as Record<string, unknown>,
-    })
+  await logAudit({
+    userId: session!.user.id,
+    action: 'CREATE',
+    entite: 'Produit',
+    entiteId: produit.id,
+    nouvelleValeur: parsed.data as Record<string, unknown>,
+  })
 
-    return NextResponse.json(produit, { status: 201 })
-  } catch (err) {
-    const error = err as Error
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  updateTag('produits')
+  return NextResponse.json(produit, { status: 201 })
 }

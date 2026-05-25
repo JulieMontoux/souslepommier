@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { updateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/api-auth'
 import { produitSchema } from '@/lib/validations/produit'
@@ -58,5 +59,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     nouvelleValeur: parsed.data as Record<string, unknown>,
   })
 
+  updateTag('produits')
   return NextResponse.json(produit)
 }

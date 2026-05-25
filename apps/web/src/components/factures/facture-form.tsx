@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router-dom'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { ArrowLeft, Save, Plus, Trash2, Search } from 'lucide-react'
-import Link from 'next/link'
+import { Link } from 'react-router-dom'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -71,7 +71,7 @@ const EMBALLAGE: Record<string, string> = {
 }
 
 export function FactureForm({ clients }: FactureFormProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [ventePreview, setVentePreview] = useState<VentePreview | null>(null)
   const [searching, setSearching] = useState(false)
@@ -197,8 +197,8 @@ export function FactureForm({ clients }: FactureFormProps) {
 
         const { id } = await res.json()
         toast.success('Facture créée')
-        router.push(`/dashboard/factures/${id}`)
-        router.refresh()
+        navigate(`/dashboard/factures/${id}`)
+        window.location.reload()
       } catch {
         toast.error('Erreur réseau')
       }
@@ -209,7 +209,7 @@ export function FactureForm({ clients }: FactureFormProps) {
     <div className="mx-auto max-w-3xl space-y-5">
       <div className="flex items-center gap-3">
         <Link
-          href="/dashboard/factures"
+          to="/dashboard/factures"
           className={buttonVariants({ variant: 'ghost', size: 'icon' })}
         >
           <ArrowLeft className="h-4 w-4" />
@@ -441,7 +441,7 @@ export function FactureForm({ clients }: FactureFormProps) {
         </div>
 
         <div className="flex justify-end gap-3">
-          <Link href="/dashboard/factures" className={buttonVariants({ variant: 'ghost' })}>
+          <Link to="/dashboard/factures" className={buttonVariants({ variant: 'ghost' })}>
             Annuler
           </Link>
           <Button type="submit" disabled={isPending} className="gap-1.5">

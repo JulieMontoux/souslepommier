@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { updateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { configSchema } from '@/lib/validations/config'
@@ -84,5 +85,6 @@ export async function PUT(req: Request) {
     nouvelleValeur: config as Record<string, unknown>,
   })
 
+  updateTag('config')
   return NextResponse.json(config)
 }

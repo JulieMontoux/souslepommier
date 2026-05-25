@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { updateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/api-auth'
 import { categorieSchema } from '@/lib/validations/produit'
@@ -29,5 +30,6 @@ export async function POST(req: Request) {
     update: {},
     create: { nom: parsed.data.nom },
   })
+  updateTag('categories')
   return NextResponse.json(categorie, { status: 201 })
 }

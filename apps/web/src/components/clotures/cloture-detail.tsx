@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
+import { Link } from 'react-router-dom'
 import { ArrowLeft, Download, Shield } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -32,7 +32,7 @@ export function ClotureDetailView({ cloture }: ClotureDetailViewProps) {
       <div className="flex items-start justify-between">
         <div>
           <Link
-            href="/dashboard/clotures"
+            to="/dashboard/clotures"
             className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'mb-2 -ml-2 gap-1')}
           >
             <ArrowLeft className="h-4 w-4" />

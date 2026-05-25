@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { getCategories } from '@/lib/cached-data'
 import { ProduitForm } from '@/components/produits/produit-form'
 import type { ProduitComplet } from '@/types/produits'
 
@@ -12,7 +13,7 @@ export default async function EditProduitPage({ params }: { params: Promise<{ id
       where: { id },
       include: { categorie: true, variantes: { orderBy: { poids: 'asc' } } },
     }),
-    prisma.categorie.findMany({ orderBy: { nom: 'asc' } }),
+    getCategories(),
   ])
 
   if (!produit) notFound()

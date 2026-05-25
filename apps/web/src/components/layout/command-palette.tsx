@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router-dom'
 import { Command } from 'cmdk'
 import {
   LayoutDashboard,
@@ -53,7 +53,7 @@ const NAV_ITEMS = [
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
-  const router = useRouter()
+  const navigate = useNavigate()
 
   const toggle = useCallback(() => setOpen((o) => !o), [])
 
@@ -68,8 +68,8 @@ export function CommandPalette() {
     return () => document.removeEventListener('keydown', handler)
   }, [toggle])
 
-  function navigate(href: string) {
-    router.push(href)
+  function handleNavigate(href: string) {
+    navigate(href)
     setOpen(false)
   }
 
@@ -119,7 +119,7 @@ export function CommandPalette() {
                     <Command.Item
                       key={item.href}
                       value={item.label}
-                      onSelect={() => navigate(item.href)}
+                      onSelect={() => handleNavigate(item.href)}
                       className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-700 aria-selected:bg-zinc-100 dark:text-zinc-300 dark:aria-selected:bg-zinc-800"
                     >
                       <item.icon className="h-4 w-4 text-zinc-400" />

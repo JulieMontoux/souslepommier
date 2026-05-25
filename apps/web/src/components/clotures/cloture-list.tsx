@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Archive, ChevronRight, Lock } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -19,7 +19,7 @@ interface ClotureListProps {
 }
 
 export function ClotureList({ clotures, dejaClotureeAujourdhui }: ClotureListProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [apercu, setApercu] = useState<ClotureApercu | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -51,7 +51,7 @@ export function ClotureList({ clotures, dejaClotureeAujourdhui }: ClotureListPro
       }
       setShowModal(false)
       toast.success(`Clôture n°${(data as { numeroCloture: number }).numeroCloture} enregistrée`)
-      router.refresh()
+      window.location.reload()
     })
   }
 
@@ -115,7 +115,7 @@ export function ClotureList({ clotures, dejaClotureeAujourdhui }: ClotureListPro
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
-                        href={`/dashboard/clotures/${c.id}`}
+                        to={`/dashboard/clotures/${c.id}`}
                         className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'gap-1')}
                       >
                         Voir

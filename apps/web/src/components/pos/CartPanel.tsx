@@ -24,7 +24,6 @@ interface CartPanelProps {
   config: ConfigTicket
   lastVente: { id: string; numeroTicket: string } | null
   setLastVente: React.Dispatch<React.SetStateAction<{ id: string; numeroTicket: string } | null>>
-  router: ReturnType<typeof import('next/navigation').useRouter>
 }
 
 export function CartPanel({
@@ -44,17 +43,17 @@ export function CartPanel({
   function handleEncaisser() {
     if (cart.length === 0) return
     const numer = parseFloat(paye)
-    if (isNaN(numer) || numer < totalTTC) {
+    if (paye.trim() === '' || isNaN(numer)) {
+      setConfirming(true)
+      return
+    }
+    if (numer < totalTTC) {
       toast.error('Montant insuffisant')
       return
     }
     const rendu = numer - totalTTC
-    const paiements: PaiementInput[] = [
-      { mode: 'ESPECES', montant: numer, renduMonnaie: rendu },
-    ]
-    setConfirming(true)
+    const paiements: PaiementInput[] = [{ mode: 'ESPECES', montant: numer, renduMonnaie: rendu }]
     onConfirmPayment(paiements).catch(() => {
-      setConfirming(false)
       toast.error('Erreur lors de la vente')
     })
   }
@@ -108,7 +107,10 @@ export function CartPanel({
           <span>{totalHT.toFixed(2).replace('.', ',')} €</span>
         </div>
         {tvaRecap.map((t) => (
-          <div key={t.taux} className="flex justify-between text-xs text-zinc-400 dark:text-zinc-500">
+          <div
+            key={t.taux}
+            className="flex justify-between text-xs text-zinc-400 dark:text-zinc-500"
+          >
             <span>TVA {t.taux}%</span>
             <span>{t.montantTVA.toFixed(2).replace('.', ',')} €</span>
           </div>
@@ -120,7 +122,7 @@ export function CartPanel({
       </div>
 
       {/* Paiement rapide */}
-      <div className="border-t border-zinc-100 px-4 pb-4 pt-3 dark:border-zinc-800">
+      <div className="border-t border-zinc-100 px-4 pt-3 pb-4 dark:border-zinc-800">
         <div className="flex gap-2">
           <Input
             type="number"
@@ -138,7 +140,10 @@ export function CartPanel({
           </Button>
         </div>
         <p className="mt-1.5 text-center text-xs text-zinc-400 dark:text-zinc-500">
-          ou appuyez sur <kbd className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs dark:bg-zinc-700">↵</kbd>
+          ou appuyez sur{' '}
+          <kbd className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs dark:bg-zinc-700">
+            ↵
+          </kbd>
         </p>
       </div>
     </aside>

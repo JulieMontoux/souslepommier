@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { Link } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
@@ -63,7 +63,7 @@ const navGroups: { label?: string; items: NavItem[] }[] = [
 ]
 
 export function Sidebar() {
-  const pathname = usePathname()
+  const { pathname } = useLocation()
 
   return (
     <aside className="border-sidebar-border bg-sidebar flex h-full w-56 shrink-0 flex-col border-r">
@@ -90,7 +90,7 @@ export function Sidebar() {
                 return (
                   <li key={href}>
                     <Link
-                      href={href}
+                      to={href}
                       className={cn(
                         'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors',
                         isActive

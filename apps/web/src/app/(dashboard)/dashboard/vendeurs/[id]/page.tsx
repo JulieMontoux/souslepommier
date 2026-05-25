@@ -1,3 +1,4 @@
+import { connection } from 'next/server'
 import { notFound } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -7,6 +8,7 @@ import type { UserDetail } from '@/types/user'
 export const metadata = { title: 'Vendeur — Sous le Pommier' }
 
 export default async function VendeurDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await connection()
   const [{ id }, session] = await Promise.all([params, auth()])
 
   const now = new Date()

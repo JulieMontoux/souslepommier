@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { z } from 'zod'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Leaf } from 'lucide-react'
-import { loginAction } from '@/app/(auth)/login/actions'
+import { useAuth } from '@/contexts/auth'
+import { ApiError } from '@/lib/api'
 
 const schema = z.object({
   email: z.string().email('Email invalide'),
@@ -17,11 +18,12 @@ const schema = z.object({
 })
 
 export function LoginForm() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get('callbackUrl')
+  const { login } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: { pathname?: string } })?.from?.pathname ?? '/dashboard'
 
-  const [isPending, startTransition] = useTransition()
+  const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
 
@@ -43,15 +45,23 @@ export function LoginForm() {
       return
     }
 
-    startTransition(async () => {
-      const result = await loginAction(raw.email, raw.password)
-      if (result.error) {
-        setError(result.error)
-        return
+    setIsPending(true)
+    try {
+      const user = await login(raw.email, raw.password)
+      navigate(user.role === 'VENDEUR' ? '/pos' : from, { replace: true })
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(
+          err.status === 429
+            ? 'Trop de tentatives. Réessayez dans 15 minutes.'
+            : 'Email ou mot de passe incorrect.'
+        )
+      } else {
+        setError('Une erreur est survenue. Réessayez.')
       }
-      router.push(callbackUrl ?? '/dashboard')
-      router.refresh()
-    })
+    } finally {
+      setIsPending(false)
+    }
   }
 
   return (

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ArrowLeft, KeyRound, CheckCircle, XCircle, Trash2, TrendingUp } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -31,7 +31,7 @@ interface VendeurDetailViewProps {
 }
 
 export function VendeurDetailView({ user, isSelf }: VendeurDetailViewProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [showDelete, setShowDelete] = useState(false)
 
@@ -48,7 +48,7 @@ export function VendeurDetailView({ user, isSelf }: VendeurDetailViewProps) {
         return
       }
       toast.success(user.actif ? 'Compte désactivé' : 'Compte activé')
-      router.refresh()
+      window.location.reload()
     })
   }
 
@@ -73,7 +73,7 @@ export function VendeurDetailView({ user, isSelf }: VendeurDetailViewProps) {
         return
       }
       toast.success('Compte anonymisé (RGPD)')
-      router.push('/dashboard/vendeurs')
+      navigate('/dashboard/vendeurs')
     })
   }
 
@@ -83,7 +83,7 @@ export function VendeurDetailView({ user, isSelf }: VendeurDetailViewProps) {
         <div className="flex items-start justify-between">
           <div>
             <Link
-              href="/dashboard/vendeurs"
+              to="/dashboard/vendeurs"
               className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'mb-2 -ml-2 gap-1')}
             >
               <ArrowLeft className="h-4 w-4" />

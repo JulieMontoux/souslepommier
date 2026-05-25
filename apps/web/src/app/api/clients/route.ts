@@ -1,47 +1,38 @@
 import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/api-auth'
 import { logAudit } from '@/lib/audit'
 import { clientCreateSchema } from '@/lib/validations/client'
-import { apiProxy } from '@/lib/api-proxy'
-import type { Client } from '@souslepommier/database'
 
 export async function GET(req: Request) {
-  const authResult = await requireAuth()
-  if (authResult.error) return authResult.error
-  const session = authResult.session
-  // session is guaranteed to be non-null because error is null
-  if (!session?.user) {
-    // defensive, should not happen
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-  }
+  const { error } = await requireAuth()
+  if (error) return error
 
   const { searchParams } = new URL(req.url)
-  const qParam = searchParams.get('q')
-  const q = qParam?.trim()
+  const q = searchParams.get('q')?.trim() || undefined
   const actifParam = searchParams.get('actif')
-  const actif = actifParam
+  const actif = actifParam === 'false' ? false : actifParam === 'true' ? true : undefined
 
-  // Build query parameters for NestJS API
-  const params = new URLSearchParams()
-  if (q !== undefined && q !== '') params.append('q', q)
-  if (actif !== null) params.append('actif', actif === 'false' ? 'false' : 'true')
+  const clients = await prisma.client.findMany({
+    where: {
+      ...(q && {
+        OR: [
+          { raisonSociale: { contains: q, mode: 'insensitive' } },
+          { siret: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+        ],
+      }),
+      ...(actif !== undefined && { actif }),
+    },
+    orderBy: { raisonSociale: 'asc' },
+  })
 
-  try {
-    const clients = await apiProxy<Client[]>(`/api/clients?${params.toString()}`)
-    return NextResponse.json(clients)
-  } catch (err) {
-    const error = err as Error
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  return NextResponse.json(clients)
 }
 
 export async function POST(req: Request) {
-  const authResult = await requireAuth(['GERANT'])
-  if (authResult.error) return authResult.error
-  const session = authResult.session
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-  }
+  const { error, session } = await requireAuth(['GERANT'])
+  if (error) return error
 
   const body = await req.json()
   const parsed = clientCreateSchema.safeParse(body)
@@ -49,24 +40,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 422 })
   }
 
-  try {
-    const client = await apiProxy<Client>(`/api/clients`, {
-      method: 'POST',
-      body: parsed.data,
-    })
-
-    const userId = (session?.user as { id?: string })?.id
-    await logAudit({
-      userId,
-      action: 'CREATE',
-      entite: 'Client',
-      entiteId: client.id,
-      nouvelleValeur: { raisonSociale: client.raisonSociale },
-    })
-
-    return NextResponse.json(client, { status: 201 })
-  } catch (err) {
-    const error = err as Error
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (parsed.data.siret) {
+    const conflict = await prisma.client.findUnique({ where: { siret: parsed.data.siret } })
+    if (conflict) {
+      return NextResponse.json({ error: 'Un client avec ce SIRET existe déjà' }, { status: 409 })
+    }
   }
+
+  const client = await prisma.client.create({ data: parsed.data })
+
+  await logAudit({
+    userId: (session!.user as { id?: string })?.id,
+    action: 'CREATE',
+    entite: 'Client',
+    entiteId: client.id,
+    nouvelleValeur: { raisonSociale: client.raisonSociale },
+  })
+
+  return NextResponse.json(client, { status: 201 })
 }

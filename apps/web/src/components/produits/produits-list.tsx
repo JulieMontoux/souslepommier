@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import type { ProduitComplet } from '@/types/produits'
 import type { Categorie } from '@souslepommier/database'
@@ -35,7 +35,7 @@ interface ProduitsListProps {
 }
 
 export function ProduitsList({ produits: initial, categories }: ProduitsListProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [produits, setProduits] = useState(initial)
   const [search, setSearch] = useState('')
@@ -75,7 +75,7 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
       }
       setProduits((prev) => prev.map((p) => (p.id === id ? { ...p, actif } : p)))
       toast.success(actif ? 'Produit activé' : 'Produit désactivé')
-      startTransition(() => router.refresh())
+      startTransition(() => window.location.reload())
     } catch {
       toast.error('Erreur réseau')
     } finally {
@@ -93,7 +93,7 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
             {produits.length} produit{produits.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Link href="/dashboard/produits/nouveau" className={cn(buttonVariants(), 'gap-2')}>
+        <Link to="/dashboard/produits/nouveau" className={cn(buttonVariants(), 'gap-2')}>
           <Plus className="h-4 w-4" />
           Nouveau produit
         </Link>
@@ -215,7 +215,7 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
                     </TableCell>
                     <TableCell className="text-right">
                       <Link
-                        href={`/dashboard/produits/${produit.id}`}
+                        to={`/dashboard/produits/${produit.id}`}
                         className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'gap-1.5')}
                       >
                         <Pencil className="h-3.5 w-3.5" />

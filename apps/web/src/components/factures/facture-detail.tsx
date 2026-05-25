@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ArrowLeft, Download, CheckCircle, AlertTriangle } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -40,7 +40,7 @@ interface FactureDetailProps {
 }
 
 export function FactureDetailView({ facture, avoirId }: FactureDetailProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [showAnnulerModal, setShowAnnulerModal] = useState(false)
   const [showPayerModal, setShowPayerModal] = useState(false)
@@ -65,7 +65,7 @@ export function FactureDetailView({ facture, avoirId }: FactureDetailProps) {
         return
       }
       toast.success('Facture émise')
-      router.refresh()
+      window.location.reload()
     })
   }
 
@@ -86,7 +86,7 @@ export function FactureDetailView({ facture, avoirId }: FactureDetailProps) {
       }
       toast.success('Facture marquée comme payée')
       setShowPayerModal(false)
-      router.refresh()
+      window.location.reload()
     })
   }
 
@@ -105,7 +105,7 @@ export function FactureDetailView({ facture, avoirId }: FactureDetailProps) {
       const { avoir } = await res.json()
       toast.success(`Facture annulée — Avoir ${avoir.numero} créé`)
       setShowAnnulerModal(false)
-      router.push(`/dashboard/factures/${avoir.id}`)
+      navigate(`/dashboard/factures/${avoir.id}`)
     })
   }
 
@@ -115,7 +115,7 @@ export function FactureDetailView({ facture, avoirId }: FactureDetailProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
-            href="/dashboard/factures"
+            to="/dashboard/factures"
             className={buttonVariants({ variant: 'ghost', size: 'icon' })}
           >
             <ArrowLeft className="h-4 w-4" />
@@ -183,7 +183,7 @@ export function FactureDetailView({ facture, avoirId }: FactureDetailProps) {
           )}
           {avoirId && (
             <Link
-              href={`/dashboard/factures/${avoirId}`}
+              to={`/dashboard/factures/${avoirId}`}
               className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}
             >
               Voir l&apos;avoir
@@ -191,7 +191,7 @@ export function FactureDetailView({ facture, avoirId }: FactureDetailProps) {
           )}
           {isAvoir && facture.factureOriginaleId && (
             <Link
-              href={`/dashboard/factures/${facture.factureOriginaleId}`}
+              to={`/dashboard/factures/${facture.factureOriginaleId}`}
               className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
             >
               Facture originale

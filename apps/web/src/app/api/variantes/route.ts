@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
+import { updateTag } from 'next/cache'
+import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/api-auth'
 import { z } from 'zod'
-import { apiProxy } from '@/lib/api-proxy'
-import type { VarianteProduit } from '@souslepommier/database'
+import { calcPrixTTC } from '@/lib/tva'
 
 const createVarianteSchema = z.object({
+  produitId: z.string().min(1),
   prixHT: z.number().min(0),
   tauxTVA: z.number().min(0),
   emballage: z.enum(['VRAC', 'BARQUETTE', 'FILET', 'SAC', 'CAISSE', 'PLATEAU']).optional(),
@@ -17,18 +19,14 @@ export async function GET(req: Request) {
   if (error) return error
 
   const { searchParams } = new URL(req.url)
-  const produitId = searchParams.get('produitId')
+  const produitId = searchParams.get('produitId') ?? undefined
 
-  const params = new URLSearchParams()
-  if (produitId !== null && produitId !== '') params.append('produitId', produitId)
+  const variantes = await prisma.varianteProduit.findMany({
+    where: produitId ? { produitId } : {},
+    orderBy: { poids: 'asc' },
+  })
 
-  try {
-    const variantes = await apiProxy<VarianteProduit[]>(`/api/variantes?${params.toString()}`)
-    return NextResponse.json(variantes)
-  } catch (err) {
-    const error = err as Error
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  return NextResponse.json(variantes)
 }
 
 export async function POST(req: Request) {
@@ -44,20 +42,31 @@ export async function POST(req: Request) {
     )
   }
 
-  const produitId = body.produitId
-  if (!produitId) {
-    return NextResponse.json({ error: 'produitId is required' }, { status: 400 })
-  }
+  const { produitId, prixHT, tauxTVA, emballage, poids, sku } = parsed.data
 
-  try {
-    const variante = await apiProxy<VarianteProduit>(`/api/produits/${produitId}/variantes`, {
-      method: 'POST',
-      body: parsed.data,
-    })
+  const produit = await prisma.produit.findUnique({ where: { id: produitId } })
+  if (!produit) return NextResponse.json({ error: 'Produit introuvable' }, { status: 404 })
 
-    return NextResponse.json(variante, { status: 201 })
-  } catch (err) {
-    const error = err as Error
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  const prixTTC = calcPrixTTC(prixHT, tauxTVA)
+
+  const variante = await prisma.varianteProduit.create({
+    data: {
+      produitId,
+      prixHT,
+      tauxTVA,
+      prixTTC,
+      emballage: (emballage ?? 'VRAC') as
+        | 'VRAC'
+        | 'BARQUETTE'
+        | 'FILET'
+        | 'SAC'
+        | 'CAISSE'
+        | 'PLATEAU',
+      ...(poids !== undefined && { poids }),
+      ...(sku !== undefined && { sku }),
+    },
+  })
+
+  updateTag('produits')
+  return NextResponse.json(variante, { status: 201 })
 }

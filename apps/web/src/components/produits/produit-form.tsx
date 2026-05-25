@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router-dom'
 import { useForm, useFieldArray, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/table'
 import { DeactivateDialog } from './deactivate-dialog'
 import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react'
-import Link from 'next/link'
+import { Link } from 'react-router-dom'
 
 // ─── Schéma formulaire ────────────────────────────────────────────────────────
 
@@ -75,7 +75,7 @@ const EMBALLAGE_LABELS: Record<string, string> = {
 }
 
 export function ProduitForm({ produit, categories }: ProduitFormProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [saving, setSaving] = useState(false)
   const [varianteDeactivate, setVarianteDeactivate] = useState<{
@@ -215,8 +215,8 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
       }
 
       toast.success(isEditing ? 'Produit mis à jour' : 'Produit créé')
-      startTransition(() => router.push('/dashboard/produits'))
-      router.refresh()
+      startTransition(() => navigate('/dashboard/produits'))
+      window.location.reload()
     } catch {
       toast.error('Erreur réseau')
     } finally {
@@ -233,7 +233,7 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
-            href="/dashboard/produits"
+            to="/dashboard/produits"
             className={buttonVariants({ variant: 'ghost', size: 'icon' })}
           >
             <ArrowLeft className="h-4 w-4" />

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Users, Plus, ChevronRight, CheckCircle, XCircle } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -24,7 +24,7 @@ interface VendeurListProps {
 }
 
 export function VendeurList({ users }: VendeurListProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [showAddModal, setShowAddModal] = useState(false)
   const [form, setForm] = useState<{
@@ -57,7 +57,7 @@ export function VendeurList({ users }: VendeurListProps) {
       }
       toast.success(actif ? 'Vendeur activé' : 'Vendeur désactivé')
       setConfirmDesactiver(null)
-      router.refresh()
+      window.location.reload()
     })
   }
 
@@ -76,7 +76,7 @@ export function VendeurList({ users }: VendeurListProps) {
       toast.success(`Compte créé — email envoyé à ${form.email}`)
       setShowAddModal(false)
       setForm({ prenom: '', nom: '', email: '', role: 'VENDEUR' })
-      router.refresh()
+      window.location.reload()
     })
   }
 
@@ -150,7 +150,7 @@ export function VendeurList({ users }: VendeurListProps) {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
-                        href={`/dashboard/vendeurs/${u.id}`}
+                        to={`/dashboard/vendeurs/${u.id}`}
                         className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'gap-1')}
                       >
                         Voir

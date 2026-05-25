@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { updateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/api-auth'
 import { logAudit } from '@/lib/audit'
@@ -35,5 +36,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     nouvelleValeur: { actif },
   })
 
+  updateTag('produits')
   return NextResponse.json(produit)
 }

@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
-import Link from 'next/link'
+import { Link } from 'react-router-dom'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -52,7 +52,7 @@ interface ClientFormProps {
 }
 
 export function ClientForm({ client }: ClientFormProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const isEdit = !!client
 
@@ -124,8 +124,8 @@ export function ClientForm({ client }: ClientFormProps) {
           return
         }
         toast.success(isEdit ? 'Client mis à jour' : 'Client créé')
-        router.push('/dashboard/clients')
-        router.refresh()
+        navigate('/dashboard/clients')
+        window.location.reload()
       } catch {
         toast.error('Erreur réseau')
       }
@@ -136,7 +136,7 @@ export function ClientForm({ client }: ClientFormProps) {
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
         <Link
-          href="/dashboard/clients"
+          to="/dashboard/clients"
           className={buttonVariants({ variant: 'ghost', size: 'icon' })}
         >
           <ArrowLeft className="h-4 w-4" />
@@ -249,7 +249,7 @@ export function ClientForm({ client }: ClientFormProps) {
         )}
 
         <div className="flex justify-end gap-3 border-t border-zinc-100 pt-4">
-          <Link href="/dashboard/clients" className={buttonVariants({ variant: 'ghost' })}>
+          <Link to="/dashboard/clients" className={buttonVariants({ variant: 'ghost' })}>
             Annuler
           </Link>
           <Button type="submit" disabled={isPending} className="gap-1.5">

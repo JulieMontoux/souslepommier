@@ -1,6 +1,7 @@
+import { connection } from 'next/server'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getPosProducts, getPosConfig } from '@/lib/cached-data'
 import { POSInterface } from '@/components/pos/pos-interface'
 import type { ProduitPOS } from '@/types/pos'
 import type { ConfigTicket } from '@/types/ticket'
@@ -8,22 +9,13 @@ import type { ConfigTicket } from '@/types/ticket'
 export const metadata = { title: 'Caisse — Sous le Pommier' }
 
 export default async function PosPage() {
+  await connection()
   const session = await auth()
   if (!session?.user) redirect('/login')
 
   const user = session.user as { id?: string; prenom?: string; nom?: string }
 
-  const [produits, configRaw] = await Promise.all([
-    prisma.produit.findMany({
-      where: { actif: true },
-      include: {
-        categorie: true,
-        variantes: { where: { actif: true }, orderBy: { poids: 'asc' } },
-      },
-      orderBy: { nom: 'asc' },
-    }),
-    prisma.configEntreprise.findFirst(),
-  ])
+  const [produits, configRaw] = await Promise.all([getPosProducts(), getPosConfig()])
 
   const produitsSerialises: ProduitPOS[] = produits
     .filter((p) => p.variantes.length > 0)

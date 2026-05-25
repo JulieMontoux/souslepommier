@@ -1,6 +1,6 @@
 'use client'
 
-import { signOut } from 'next-auth/react'
+import { useNavigate } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { LogOut, User } from 'lucide-react'
 import { CommandPalette } from './command-palette'
+import { useAuth } from '@/contexts/auth'
 
 interface HeaderProps {
   user: {
@@ -25,6 +26,13 @@ interface HeaderProps {
 
 export function Header({ user }: HeaderProps) {
   const initials = `${user.prenom[0] ?? ''}${user.nom[0] ?? ''}`.toUpperCase()
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    await logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <header className="border-border bg-card flex h-14 items-center justify-between gap-4 border-b px-6">
@@ -60,7 +68,7 @@ export function Header({ user }: HeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer gap-2 text-red-600 focus:text-red-600"
-              onClick={() => signOut({ callbackUrl: '/login' })}
+              onClick={handleLogout}
             >
               <LogOut className="h-4 w-4" />
               Se déconnecter

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { Link } from 'react-router-dom'
 import { Search, Plus, Building2, Mail, Phone } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { buttonVariants } from '@/components/ui/button'
@@ -44,7 +44,7 @@ export function ClientList({ clients }: ClientListProps) {
             {clients.length > 1 ? 's' : ''}
           </p>
         </div>
-        <Link href="/dashboard/clients/nouveau" className={cn(buttonVariants(), 'gap-1.5')}>
+        <Link to="/dashboard/clients/nouveau" className={cn(buttonVariants(), 'gap-1.5')}>
           <Plus className="h-4 w-4" />
           Nouveau client
         </Link>
@@ -119,7 +119,7 @@ export function ClientList({ clients }: ClientListProps) {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link
-                      href={`/dashboard/clients/${client.id}`}
+                      to={`/dashboard/clients/${client.id}`}
                       className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
                     >
                       Voir

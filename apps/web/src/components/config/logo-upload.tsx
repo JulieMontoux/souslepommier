@@ -1,7 +1,6 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -48,7 +47,7 @@ export function LogoUpload({ currentUrl, onUpload }: LogoUploadProps) {
       <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50">
         {preview ? (
           <>
-            <Image src={preview} alt="Logo" fill className="object-contain p-1" unoptimized />
+            <img src={preview} alt="Logo" className="h-full w-full object-contain p-1" />
             <button
               type="button"
               onClick={() => setPreview(null)}

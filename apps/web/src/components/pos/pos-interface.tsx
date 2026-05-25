@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/auth'
 import { toast } from 'sonner'
 import { LogOut, Leaf } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -40,7 +40,13 @@ interface POSInterfaceProps {
 }
 
 export function POSInterface({ produits, user, config }: POSInterfaceProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
+  const { logout } = useAuth()
+
+  async function handleLogout() {
+    await logout()
+    navigate('/login', { replace: true })
+  }
   const [cart, setCart] = useState<LigneCart[]>([])
   const [picking, setPicking] = useState<ProduitPOS | null>(null)
   const [confirming, setConfirming] = useState(false)
@@ -145,7 +151,7 @@ export function POSInterface({ produits, user, config }: POSInterfaceProps) {
       setLastVente({ id: vente.id, numeroTicket: vente.numeroTicket })
       setCart([])
       setConfirming(false)
-      router.refresh()
+      window.location.reload()
     } catch {
       toast.error('Erreur réseau')
     } finally {
@@ -170,7 +176,7 @@ export function POSInterface({ produits, user, config }: POSInterfaceProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={handleLogout}
             className="text-sidebar-foreground/60 hover:text-sidebar-foreground gap-1.5"
           >
             <LogOut className="h-4 w-4" />
@@ -198,7 +204,6 @@ export function POSInterface({ produits, user, config }: POSInterfaceProps) {
           config={config}
           lastVente={lastVente}
           setLastVente={setLastVente}
-          router={router}
         />
       </div>
 
