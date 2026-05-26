@@ -2,7 +2,6 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider } from '@/contexts/auth'
 import App from './App'
@@ -22,15 +21,8 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem={false}
-            forcedTheme="light"
-          >
-            <App />
-            <Toaster richColors position="bottom-right" />
-          </ThemeProvider>
+          <App />
+          <Toaster richColors position="bottom-right" />
         </AuthProvider>
       </QueryClientProvider>
     </BrowserRouter>
