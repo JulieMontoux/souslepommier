@@ -1,5 +1,7 @@
+import React from "react";
 import { Hono } from "hono";
 import { z } from "zod";
+import { renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "../lib/prisma.js";
 import {
   authMiddleware,
@@ -8,6 +10,7 @@ import {
 } from "../lib/middleware.js";
 import { logAudit } from "../lib/audit.js";
 import { roundFiscal, calcMontantTVA } from "../lib/tva.js";
+import { FactureDocument } from "../pdf/facture-pdf.js";
 import type { StatutFacture, Prisma } from "@souslepommier/database";
 
 const ligneFactureSchema = z.object({
@@ -268,4 +271,82 @@ facturesRouter.post("/:id/annuler", requireRole("GERANT"), async (c) => {
     nouvelleValeur: { statut: "ANNULEE" },
   });
   return c.json(serializeFacture(facture));
+});
+
+facturesRouter.get("/:id/pdf", async (c) => {
+  const facture = await prisma.facture.findUnique({
+    where: { id: c.req.param("id") },
+    include: { client: true, lignes: { orderBy: [{ id: "asc" }] } },
+  });
+  if (!facture) return c.json({ error: "Facture introuvable" }, 404);
+
+  const config = await prisma.configEntreprise.findUnique({
+    where: { id: "default" },
+  });
+
+  const factureData = {
+    ...serializeFacture(facture),
+    client: {
+      raisonSociale: facture.client.raisonSociale,
+      siret: facture.client.siret,
+      tvaIntracommunautaire: facture.client.tvaIntracommunautaire,
+      adresse: facture.client.adresse,
+      codePostal: facture.client.codePostal,
+      ville: facture.client.ville,
+      pays: facture.client.pays,
+      email: facture.client.email,
+      telephone: facture.client.telephone,
+      conditionsPaiement: facture.client.conditionsPaiement,
+    },
+    lignes: facture.lignes.map((l) => ({
+      id: l.id,
+      designation: l.designation,
+      qte: Number(l.qte),
+      prixUnitaireHT: Number(l.prixUnitaireHT),
+      tauxTVA: Number(l.tauxTVA),
+      montantHT: Number(l.montantHT),
+      montantTVA: Number(l.montantTVA),
+      montantTTC: Number(l.montantTTC),
+      remise: Number(l.remise),
+    })),
+  };
+
+  const configData = config
+    ? {
+        raisonSociale: config.raisonSociale,
+        formeJuridique: config.formeJuridique,
+        capitalSocial: config.capitalSocial
+          ? Number(config.capitalSocial)
+          : null,
+        siret: config.siret,
+        tvaIntracommunautaire: config.tvaIntracommunautaire,
+        adresse: config.adresse,
+        codePostal: config.codePostal,
+        ville: config.ville,
+        telephone: config.telephone,
+        email: config.email,
+        iban: config.iban,
+        rcs: config.rcs,
+        villeRCS: config.villeRCS,
+        regimeTVA: config.regimeTVA,
+      }
+    : null;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buffer = await renderToBuffer(
+    React.createElement(FactureDocument, {
+      facture: factureData,
+      config: configData,
+    }) as any,
+  );
+
+  const isAvoir = !!facture.factureOriginaleId;
+  const filename = `${isAvoir ? "avoir" : "facture"}-${facture.numero}.pdf`;
+
+  return new Response(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+    },
+  });
 });

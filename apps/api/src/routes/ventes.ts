@@ -1,9 +1,13 @@
+import React from "react";
 import { Hono } from "hono";
 import { z } from "zod";
+import { renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "../lib/prisma.js";
 import { authMiddleware, type HonoEnv } from "../lib/middleware.js";
 import { logAudit } from "../lib/audit.js";
 import { createVente } from "../lib/create-vente.js";
+import { recapTVA } from "../lib/tva.js";
+import { TicketDocument } from "../pdf/ticket-pdf.js";
 
 const venteCreateSchema = z.object({
   lignes: z
@@ -141,6 +145,87 @@ ventesRouter.get("/:id", async (c) => {
   });
   if (!vente) return c.json({ error: "Vente introuvable" }, 404);
   return c.json(vente);
+});
+
+ventesRouter.get("/:id/ticket", async (c) => {
+  const vente = await prisma.vente.findUnique({
+    where: { id: c.req.param("id") },
+    include: {
+      vendeur: { select: { prenom: true } },
+      lignes: {
+        include: {
+          variante: { include: { produit: { select: { nom: true } } } },
+        },
+      },
+      paiements: true,
+    },
+  });
+  if (!vente) return c.json({ error: "Vente introuvable" }, 404);
+
+  const config = await prisma.configEntreprise.findUnique({
+    where: { id: "default" },
+  });
+
+  const lignes = vente.lignes.map((l) => ({
+    designation: l.variante.produit.nom,
+    qte: Number(l.qte),
+    prixUnitaireHT: Number(l.prixUnitaireHT),
+    tauxTVA: Number(l.tauxTVA),
+    montantTTC: Number(l.montantTTC),
+    remise: Number(l.remise),
+  }));
+
+  const recapTaxes = recapTVA(
+    vente.lignes.map((l) => ({
+      tauxTVA: Number(l.tauxTVA),
+      montantHT: Number(l.montantHT),
+    })),
+  ).map((r) => ({ taux: r.taux, baseHT: r.baseHT, montantTVA: r.montantTVA }));
+
+  const venteData = {
+    id: vente.id,
+    numeroTicket: vente.numeroTicket,
+    date: vente.date.toISOString(),
+    vendeurPrenom: vente.vendeur.prenom,
+    lignes,
+    paiements: vente.paiements.map((p) => ({
+      mode: p.mode,
+      montant: Number(p.montant),
+      renduMonnaie: Number(p.renduMonnaie),
+      reference: p.reference,
+    })),
+    recapTaxes,
+    totalHT: Number(vente.totalHT),
+    totalTVA: Number(vente.totalTVA),
+    totalTTC: Number(vente.totalTTC),
+  };
+
+  const configData = config
+    ? {
+        raisonSociale: config.raisonSociale,
+        siret: config.siret,
+        tvaIntracommunautaire: config.tvaIntracommunautaire,
+        adresse: config.adresse,
+        codePostal: config.codePostal,
+        ville: config.ville,
+        telephone: config.telephone,
+      }
+    : null;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buffer = await renderToBuffer(
+    React.createElement(TicketDocument, {
+      vente: venteData,
+      config: configData,
+    }) as any,
+  );
+
+  return new Response(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="ticket-${vente.numeroTicket}.pdf"`,
+    },
+  });
 });
 
 ventesRouter.post("/:id/annuler", async (c) => {

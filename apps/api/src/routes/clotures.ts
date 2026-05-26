@@ -1,9 +1,12 @@
+import React from "react";
 import { Hono } from "hono";
+import { renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "../lib/prisma.js";
 import { requireRole, type HonoEnv } from "../lib/middleware.js";
 import { logAudit } from "../lib/audit.js";
 import { computeClotureApercu } from "../lib/compute-cloture.js";
 import { computeClotureHash } from "../lib/cloture-hash.js";
+import { ClotureDocument } from "../pdf/cloture-pdf.js";
 import type { Prisma } from "@souslepommier/database";
 
 export const cloturesRouter = new Hono<HonoEnv>();
@@ -126,14 +129,29 @@ cloturesRouter.get("/apercu", async (c) => {
   return c.json(await computeClotureApercu(prisma, now));
 });
 
-cloturesRouter.get("/:id", async (c) => {
-  const cl = await prisma.clotureCaisse.findUnique({
-    where: { id: c.req.param("id") },
-    include: { gerant: { select: { prenom: true, nom: true } } },
-  });
-  if (!cl) return c.json({ error: "Clôture introuvable" }, 404);
-
-  return c.json({
+function serializeCloture(cl: {
+  id: string;
+  numeroCloture: number;
+  date: Date;
+  createdAt: Date;
+  gerantId: string;
+  gerant: { prenom: string; nom: string };
+  nbVentes: number;
+  totalEspeces: Prisma.Decimal;
+  totalCB: Prisma.Decimal;
+  totalCheque: Prisma.Decimal;
+  totalVirement: Prisma.Decimal;
+  totalTR: Prisma.Decimal;
+  totalHT: Prisma.Decimal;
+  totalTVA: Prisma.Decimal;
+  totalTTC: Prisma.Decimal;
+  recapVendeurs: Prisma.JsonValue;
+  recapTVA: Prisma.JsonValue;
+  recapProduits: Prisma.JsonValue;
+  ventesAnnulees: Prisma.JsonValue;
+  hashCumulatif: string;
+}) {
+  return {
     id: cl.id,
     numeroCloture: cl.numeroCloture,
     date: cl.date.toISOString(),
@@ -150,10 +168,49 @@ cloturesRouter.get("/:id", async (c) => {
     totalHT: Number(cl.totalHT),
     totalTVA: Number(cl.totalTVA),
     totalTTC: Number(cl.totalTTC),
-    recapVendeurs: cl.recapVendeurs ?? [],
-    recapTVA: cl.recapTVA ?? [],
-    recapProduits: cl.recapProduits ?? [],
-    ventesAnnulees: cl.ventesAnnulees ?? [],
+    recapVendeurs: (cl.recapVendeurs ?? []) as unknown[],
+    recapTVA: (cl.recapTVA ?? []) as unknown[],
+    recapProduits: (cl.recapProduits ?? []) as unknown[],
+    ventesAnnulees: (cl.ventesAnnulees ?? []) as unknown[],
     hashCumulatif: cl.hashCumulatif,
+  };
+}
+
+cloturesRouter.get("/:id", async (c) => {
+  const cl = await prisma.clotureCaisse.findUnique({
+    where: { id: c.req.param("id") },
+    include: { gerant: { select: { prenom: true, nom: true } } },
+  });
+  if (!cl) return c.json({ error: "Clôture introuvable" }, 404);
+  return c.json(serializeCloture(cl));
+});
+
+cloturesRouter.get("/:id/pdf", async (c) => {
+  const cl = await prisma.clotureCaisse.findUnique({
+    where: { id: c.req.param("id") },
+    include: { gerant: { select: { prenom: true, nom: true } } },
+  });
+  if (!cl) return c.json({ error: "Clôture introuvable" }, 404);
+
+  const config = await prisma.configEntreprise.findUnique({
+    where: { id: "default" },
+  });
+  const raisonSociale = config?.raisonSociale ?? "Sous le Pommier";
+
+  const clotureData = serializeCloture(cl);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buffer = await renderToBuffer(
+    React.createElement(ClotureDocument, {
+      cloture: clotureData as Parameters<typeof ClotureDocument>[0]["cloture"],
+      raisonSociale,
+    }) as any,
+  );
+
+  return new Response(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="cloture-${cl.numeroCloture}.pdf"`,
+    },
   });
 });

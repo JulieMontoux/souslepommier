@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { compress } from "hono/compress";
 import { serve } from "@hono/node-server";
 import { authRouter } from "./routes/auth.js";
 import { produitsRouter } from "./routes/produits.js";
@@ -19,6 +20,8 @@ import { rgpdRouter } from "./routes/rgpd.js";
 const app = new Hono();
 
 const WEB_ORIGIN = process.env.WEB_ORIGIN ?? "http://localhost:5173";
+
+app.use("*", compress());
 
 app.use(
   "*",
