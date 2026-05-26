@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Archive, ChevronRight, Lock } from 'lucide-react'
+import { Archive, ChevronRight, Lock, LockOpen } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { ClotureSummary, ClotureApercu } from '@/types/cloture'
@@ -19,7 +19,7 @@ interface ClotureListProps {
 }
 
 export function ClotureList({ clotures, dejaClotureeAujourdhui }: ClotureListProps) {
-  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [isPending, startTransition] = useTransition()
   const [apercu, setApercu] = useState<ClotureApercu | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -51,7 +51,7 @@ export function ClotureList({ clotures, dejaClotureeAujourdhui }: ClotureListPro
       }
       setShowModal(false)
       toast.success(`Clôture n°${(data as { numeroCloture: number }).numeroCloture} enregistrée`)
-      window.location.reload()
+      void queryClient.invalidateQueries({ queryKey: ['clotures'] })
     })
   }
 
@@ -72,9 +72,31 @@ export function ClotureList({ clotures, dejaClotureeAujourdhui }: ClotureListPro
             </Button>
           )}
           {dejaClotureeAujourdhui && (
-            <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
-              Journée clôturée
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-700">
+                Journée clôturée
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => {
+                  startTransition(async () => {
+                    const res = await fetch('/api/clotures/today', { method: 'DELETE' })
+                    if (!res.ok) {
+                      toast.error('Impossible de rouvrir la caisse')
+                      return
+                    }
+                    toast.success('Caisse rouverte')
+                    void queryClient.invalidateQueries({ queryKey: ['clotures'] })
+                  })
+                }}
+                disabled={isPending}
+              >
+                <LockOpen className="h-4 w-4" />
+                Rouvrir
+              </Button>
+            </div>
           )}
         </div>
 

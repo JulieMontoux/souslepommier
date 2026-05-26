@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/auth'
 import { toast } from 'sonner'
 import { LogOut, Leaf } from 'lucide-react'
@@ -35,18 +36,44 @@ function buildVarianteLabel(v: ProduitPOSVariante): string {
 
 interface POSInterfaceProps {
   produits: ProduitPOS[]
-  user: { id: string; prenom: string; nom: string }
+  user: { id: string; prenom: string; nom: string; role: string }
   config: ConfigTicket
+  isCloturee: boolean
+  onReouverture: () => void
 }
 
-export function POSInterface({ produits, user, config }: POSInterfaceProps) {
+export function POSInterface({
+  produits,
+  user,
+  config,
+  isCloturee,
+  onReouverture,
+}: POSInterfaceProps) {
   const navigate = useNavigate()
   const { logout } = useAuth()
+  const queryClient = useQueryClient()
+  const [reopening, setReopening] = useState(false)
 
   async function handleLogout() {
     await logout()
     navigate('/login', { replace: true })
   }
+
+  async function handleReouverture() {
+    setReopening(true)
+    try {
+      const res = await fetch('/api/clotures/today', { method: 'DELETE' })
+      if (!res.ok) {
+        toast.error('Impossible de rouvrir la caisse')
+        return
+      }
+      toast.success('Caisse rouverte')
+      onReouverture()
+    } finally {
+      setReopening(false)
+    }
+  }
+
   const [cart, setCart] = useState<LigneCart[]>([])
   const [picking, setPicking] = useState<ProduitPOS | null>(null)
   const [confirming, setConfirming] = useState(false)
@@ -151,12 +178,60 @@ export function POSInterface({ produits, user, config }: POSInterfaceProps) {
       setLastVente({ id: vente.id, numeroTicket: vente.numeroTicket })
       setCart([])
       setConfirming(false)
-      window.location.reload()
+      void queryClient.invalidateQueries({ queryKey: ['produits', 'pos'] })
     } catch {
       toast.error('Erreur réseau')
     } finally {
       setSaving(false)
     }
+  }
+
+  if (isCloturee) {
+    return (
+      <div className="bg-background flex h-screen flex-col">
+        <header className="border-sidebar-border bg-sidebar flex h-14 shrink-0 items-center justify-between border-b px-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-600">
+              <Leaf className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-sidebar-foreground font-semibold">Caisse</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sidebar-foreground/70 text-sm">
+              {user.prenom} {user.nom}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="text-sidebar-foreground/60 hover:text-sidebar-foreground gap-1.5"
+            >
+              <LogOut className="h-4 w-4" />
+              Quitter
+            </Button>
+          </div>
+        </header>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100">
+            <LogOut className="h-8 w-8 text-amber-600" />
+          </div>
+          <div className="text-center">
+            <p className="text-foreground text-lg font-semibold">Caisse clôturée</p>
+            <p className="text-muted-foreground mt-1 text-sm">
+              {user.role === 'GERANT'
+                ? 'La journée a été clôturée. Vous pouvez rouvrir la caisse.'
+                : 'La journée a été clôturée. Contactez le gérant.'}
+            </p>
+          </div>
+          {user.role === 'GERANT' && (
+            <Button onClick={handleReouverture} disabled={reopening} className="mt-2 gap-2">
+              <LogOut className="h-4 w-4 rotate-180" />
+              {reopening ? 'Réouverture…' : 'Rouvrir la caisse'}
+            </Button>
+          )}
+        </div>
+      </div>
+    )
   }
 
   return (

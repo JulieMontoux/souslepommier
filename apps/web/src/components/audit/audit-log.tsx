@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition, useEffect, useCallback } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Download, ShieldCheck, ShieldAlert, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,17 @@ type LogEntry = {
   ip: string | null
 }
 
+type RawLog = {
+  id: string
+  timestamp: string
+  userId: string | null
+  user: { prenom: string; nom: string } | null
+  action: string
+  entite: string
+  entiteId: string | null
+  ip: string | null
+}
+
 type VerifyResult = {
   valid: boolean
   nbVentesVerifiees: number
@@ -35,74 +47,89 @@ type VerifyResult = {
 }
 
 export function AuditLog() {
-  const [logs, setLogs] = useState<LogEntry[]>([])
-  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [pages, setPages] = useState(1)
-  const [isPending, startTransition] = useTransition()
-
   const [filterAction, setFilterAction] = useState('')
   const [filterEntite, setFilterEntite] = useState('')
   const [filterFrom, setFilterFrom] = useState('')
   const [filterTo, setFilterTo] = useState('')
-
   const [verify, setVerify] = useState<VerifyResult | null>(null)
-  const [isVerifying, startVerify] = useTransition()
+  const [isVerifying, setIsVerifying] = useState(false)
 
-  const buildQS = useCallback(
-    (p = page) => {
-      const params = new URLSearchParams()
-      if (filterAction) params.set('action', filterAction)
-      if (filterEntite) params.set('entite', filterEntite)
-      if (filterFrom) params.set('from', filterFrom)
-      if (filterTo) params.set('to', filterTo)
-      params.set('page', String(p))
-      return params.toString()
+  const { data, isFetching, refetch } = useQuery({
+    queryKey: ['audit', filterAction, filterEntite, filterFrom, filterTo, page],
+    queryFn: async () => {
+      const qs = new URLSearchParams()
+      if (filterAction) qs.set('action', filterAction)
+      if (filterEntite) qs.set('entite', filterEntite)
+      if (filterFrom) qs.set('from', filterFrom)
+      if (filterTo) qs.set('to', filterTo)
+      qs.set('page', String(page))
+      const res = await fetch(`/api/audit?${qs.toString()}`)
+      if (!res.ok) {
+        toast.error('Erreur chargement logs')
+        throw new Error('Erreur chargement logs')
+      }
+      const json = await res.json()
+      return {
+        logs: (json.data as RawLog[]).map(
+          (l): LogEntry => ({
+            id: l.id,
+            timestamp: l.timestamp,
+            userId: l.userId,
+            userName: l.user ? `${l.user.prenom} ${l.user.nom}` : null,
+            action: l.action,
+            entite: l.entite,
+            entiteId: l.entiteId,
+            ip: l.ip,
+          })
+        ),
+        total: json.meta.total as number,
+        pages: json.meta.totalPages as number,
+      }
     },
-    [page, filterAction, filterEntite, filterFrom, filterTo]
-  )
+  })
 
-  const fetchLogs = useCallback(
-    (p = 1) => {
-      startTransition(async () => {
-        const res = await fetch(`/api/audit?${buildQS(p)}`)
-        if (!res.ok) {
-          toast.error('Erreur chargement logs')
-          return
-        }
-        const data = await res.json()
-        setLogs(data.logs)
-        setTotal(data.total)
-        setPage(data.page)
-        setPages(data.pages)
-      })
-    },
-    [buildQS]
-  )
+  const logs = data?.logs ?? []
+  const total = data?.total ?? 0
+  const pages = data?.pages ?? 1
 
-  useEffect(() => {
-    fetchLogs(1)
-  }, [filterAction, filterEntite, filterFrom, filterTo]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function handleExport() {
-    const params = new URLSearchParams()
-    if (filterAction) params.set('action', filterAction)
-    if (filterEntite) params.set('entite', filterEntite)
-    if (filterFrom) params.set('from', filterFrom)
-    if (filterTo) params.set('to', filterTo)
-    params.set('format', 'csv')
-    window.open(`/api/audit?${params.toString()}`)
+  function resetFilters() {
+    setFilterAction('')
+    setFilterEntite('')
+    setFilterFrom('')
+    setFilterTo('')
+    setPage(1)
   }
 
-  function handleVerify() {
-    startVerify(async () => {
+  function handleFilterChange(setter: (v: string) => void) {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      setter(e.target.value)
+      setPage(1)
+    }
+  }
+
+  function handleExport() {
+    const qs = new URLSearchParams()
+    if (filterAction) qs.set('action', filterAction)
+    if (filterEntite) qs.set('entite', filterEntite)
+    if (filterFrom) qs.set('from', filterFrom)
+    if (filterTo) qs.set('to', filterTo)
+    qs.set('format', 'csv')
+    window.open(`/api/audit?${qs.toString()}`)
+  }
+
+  async function handleVerify() {
+    setIsVerifying(true)
+    try {
       const res = await fetch('/api/audit/verify')
       if (!res.ok) {
         toast.error('Erreur vérification')
         return
       }
       setVerify(await res.json())
-    })
+    } finally {
+      setIsVerifying(false)
+    }
   }
 
   return (
@@ -131,7 +158,6 @@ export function AuditLog() {
         </div>
       </div>
 
-      {/* Résultat vérification */}
       {verify && (
         <div
           className={`rounded-lg border p-4 ${verify.valid ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}
@@ -163,52 +189,41 @@ export function AuditLog() {
         </div>
       )}
 
-      {/* Filtres */}
       <div className="flex flex-wrap gap-2">
         <input
           type="text"
           placeholder="Action…"
           value={filterAction}
-          onChange={(e) => setFilterAction(e.target.value)}
+          onChange={handleFilterChange(setFilterAction)}
           className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
         />
         <input
           type="text"
           placeholder="Entité…"
           value={filterEntite}
-          onChange={(e) => setFilterEntite(e.target.value)}
+          onChange={handleFilterChange(setFilterEntite)}
           className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
         />
         <input
           type="date"
           value={filterFrom}
-          onChange={(e) => setFilterFrom(e.target.value)}
+          onChange={handleFilterChange(setFilterFrom)}
           className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
         />
         <input
           type="date"
           value={filterTo}
-          onChange={(e) => setFilterTo(e.target.value)}
+          onChange={handleFilterChange(setFilterTo)}
           className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
         />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setFilterAction('')
-            setFilterEntite('')
-            setFilterFrom('')
-            setFilterTo('')
-          }}
-        >
+        <Button variant="ghost" size="sm" onClick={resetFilters}>
           Réinitialiser
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => fetchLogs(page)} disabled={isPending}>
-          <RefreshCw className={`h-4 w-4 ${isPending ? 'animate-spin' : ''}`} />
+        <Button variant="ghost" size="sm" onClick={() => void refetch()} disabled={isFetching}>
+          <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
         </Button>
       </div>
 
-      {/* Table */}
       <div className="rounded-xl border border-zinc-200 bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead>
@@ -224,7 +239,7 @@ export function AuditLog() {
             {logs.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-10 text-center text-sm text-zinc-400">
-                  {isPending ? 'Chargement…' : 'Aucun résultat'}
+                  {isFetching ? 'Chargement…' : 'Aucun résultat'}
                 </td>
               </tr>
             )}
@@ -259,7 +274,6 @@ export function AuditLog() {
         </table>
       </div>
 
-      {/* Pagination */}
       {pages > 1 && (
         <div className="flex items-center justify-between text-sm">
           <span className="text-zinc-400">
@@ -269,16 +283,16 @@ export function AuditLog() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fetchLogs(page - 1)}
-              disabled={page <= 1 || isPending}
+              onClick={() => setPage((p) => p - 1)}
+              disabled={page <= 1 || isFetching}
             >
               Précédent
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fetchLogs(page + 1)}
-              disabled={page >= pages || isPending}
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page >= pages || isFetching}
             >
               Suivant
             </Button>

@@ -66,25 +66,23 @@ export function Sidebar() {
   const { pathname } = useLocation()
 
   return (
-    <aside className="border-sidebar-border bg-sidebar flex h-full w-56 shrink-0 flex-col border-r">
-      <div className="border-sidebar-border flex h-14 shrink-0 items-center gap-2.5 border-b px-4">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-green-500">
+    <aside className="border-sidebar-border bg-sidebar flex h-full w-60 shrink-0 flex-col border-r">
+      <div className="border-sidebar-border flex h-14 shrink-0 items-center gap-3 border-b px-5">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-green-600">
           <Leaf className="h-4 w-4 text-white" />
         </div>
-        <span className="text-sidebar-foreground text-sm font-semibold tracking-tight">
-          Sous le Pommier
-        </span>
+        <span className="text-sidebar-foreground text-sm font-semibold">Sous le Pommier</span>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2 py-3">
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
         {navGroups.map((group, i) => (
-          <div key={i} className={cn('mb-1', i > 0 && 'mt-4')}>
+          <div key={i} className={cn(i > 0 && 'mt-5')}>
             {group.label && (
-              <p className="text-sidebar-foreground/40 mb-1 px-2 text-[10px] font-semibold tracking-widest uppercase">
+              <p className="text-muted-foreground mb-1.5 px-2 text-[10px] font-semibold tracking-widest uppercase">
                 {group.label}
               </p>
             )}
-            <ul className="space-y-0.5">
+            <ul className="space-y-px">
               {group.items.map(({ href, label, icon: Icon, exact }) => {
                 const isActive = exact ? pathname === href : pathname.startsWith(href)
                 return (
@@ -92,13 +90,21 @@ export function Sidebar() {
                     <Link
                       to={href}
                       className={cn(
-                        'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors',
+                        'relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
                         isActive
-                          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                          : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                          ? 'bg-sidebar-primary text-sidebar-primary-foreground font-medium'
+                          : 'text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground font-normal'
                       )}
                     >
-                      <Icon className={cn('h-4 w-4 shrink-0', isActive && 'text-green-600')} />
+                      {isActive && (
+                        <span className="absolute top-1/2 left-0 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-green-600" />
+                      )}
+                      <Icon
+                        className={cn(
+                          'h-4 w-4 shrink-0',
+                          isActive ? 'text-green-700' : 'text-sidebar-foreground/40'
+                        )}
+                      />
                       {label}
                     </Link>
                   </li>

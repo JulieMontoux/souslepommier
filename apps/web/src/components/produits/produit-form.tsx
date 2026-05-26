@@ -82,6 +82,7 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
     index: number
     id?: string
   } | null>(null)
+  const [varianteDeleteIndex, setVarianteDeleteIndex] = useState<number | null>(null)
 
   const isEditing = !!produit
 
@@ -206,10 +207,10 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
             body: JSON.stringify(variantePayload),
           })
         } else {
-          await fetch(`/api/produits/${produitId}/variantes`, {
+          await fetch('/api/variantes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(variantePayload),
+            body: JSON.stringify({ ...variantePayload, produitId }),
           })
         }
       }
@@ -449,7 +450,7 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        onClick={() => remove(index)}
+                        onClick={() => setVarianteDeleteIndex(index)}
                         className="text-zinc-400 hover:text-red-500"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -462,6 +463,19 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
           </div>
         )}
       </div>
+
+      {/* Confirmation suppression variante (non-sauvegardée) */}
+      <DeactivateDialog
+        open={varianteDeleteIndex !== null}
+        onOpenChange={(open) => !open && setVarianteDeleteIndex(null)}
+        label="cette variante"
+        description="La variante sera retirée du formulaire."
+        onConfirm={() => {
+          if (varianteDeleteIndex === null) return
+          remove(varianteDeleteIndex)
+          setVarianteDeleteIndex(null)
+        }}
+      />
 
       {/* Confirmation désactivation variante */}
       <DeactivateDialog

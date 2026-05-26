@@ -10,7 +10,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Badge } from '@/components/ui/badge'
 import { LogOut, User } from 'lucide-react'
 import { CommandPalette } from './command-palette'
 import { useAuth } from '@/contexts/auth'
@@ -35,47 +34,44 @@ export function Header({ user }: HeaderProps) {
   }
 
   return (
-    <header className="border-border bg-card flex h-14 items-center justify-between gap-4 border-b px-6">
+    <header className="border-border bg-card flex h-14 shrink-0 items-center justify-between gap-4 border-b px-6">
       <CommandPalette />
 
-      <div className="flex items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger className="hover:bg-muted flex items-center gap-3 rounded-lg px-2 py-1.5 focus:outline-none">
-            <div className="text-right">
-              <p className="text-foreground text-sm font-medium">
-                {user.prenom} {user.nom}
-              </p>
-              <Badge
-                variant={user.role === 'GERANT' ? 'default' : 'secondary'}
-                className="h-4 px-1.5 text-xs"
-              >
-                {user.role === 'GERANT' ? 'Gérant' : 'Vendeur'}
-              </Badge>
-            </div>
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-green-100 text-xs font-semibold text-green-700">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel className="text-xs text-zinc-500">{user.email}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer gap-2">
-              <User className="h-4 w-4" />
-              Mon profil
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="cursor-pointer gap-2 text-red-600 focus:text-red-600"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4" />
-              Se déconnecter
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger className="hover:bg-accent flex items-center gap-2.5 rounded-lg px-2 py-1.5 focus:outline-none">
+          <Avatar className="h-7 w-7">
+            <AvatarFallback className="bg-green-100 text-[11px] font-semibold text-green-700">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="text-left">
+            <p className="text-foreground text-sm leading-none font-medium">
+              {user.prenom} {user.nom}
+            </p>
+            <p className="text-muted-foreground mt-0.5 text-[11px] leading-none">
+              {user.role === 'GERANT' ? 'Gérant' : 'Vendeur'}
+            </p>
+          </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuLabel className="text-muted-foreground text-xs">
+            {user.email}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="cursor-pointer gap-2">
+            <User className="h-4 w-4" />
+            Mon profil
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="cursor-pointer gap-2 text-red-600 focus:text-red-600"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+            Se déconnecter
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </header>
   )
 }

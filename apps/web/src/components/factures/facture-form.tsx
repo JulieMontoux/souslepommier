@@ -198,7 +198,6 @@ export function FactureForm({ clients }: FactureFormProps) {
         const { id } = await res.json()
         toast.success('Facture créée')
         navigate(`/dashboard/factures/${id}`)
-        window.location.reload()
       } catch {
         toast.error('Erreur réseau')
       }

@@ -1,6 +1,47 @@
 import { roundFiscal } from "./tva.js";
 import type { PrismaClient } from "@souslepommier/database";
 
+const PARIS_TZ = "Europe/Paris";
+
+function parisDateKey(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: PARIS_TZ }).format(date);
+}
+
+function parisHour(date: Date): number {
+  return parseInt(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: PARIS_TZ,
+      hour: "numeric",
+      hour12: false,
+    }).format(date),
+    10,
+  );
+}
+
+function parisOffsetMs(date: Date): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: PARIS_TZ,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hour12: false,
+  }).formatToParts(date);
+  const get = (t: string) =>
+    parseInt(parts.find((p) => p.type === t)?.value ?? "0", 10);
+  const localMs = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour") % 24,
+    get("minute"),
+    get("second"),
+  );
+  return localMs - date.getTime();
+}
+
 export type DayStats = {
   date: string;
   caHT: number;
@@ -85,10 +126,11 @@ async function fetchVentes(db: PrismaClient, gte: Date, lte: Date) {
 }
 
 function dayBounds(date: Date): [Date, Date] {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
+  const key = parisDateKey(date);
+  const approxMid = new Date(`${key}T11:00:00Z`);
+  const offsetMs = parisOffsetMs(approxMid);
+  const start = new Date(new Date(`${key}T00:00:00Z`).getTime() - offsetMs);
+  const end = new Date(start.getTime() + 24 * 3600_000 - 1);
   return [start, end];
 }
 
@@ -119,7 +161,7 @@ function aggregateVentes(ventes: VenteWithRelations[]) {
 function buildParHeure(finalisees: VenteWithRelations[]) {
   const map = new Map<number, { nbVentes: number; caTTC: number }>();
   for (const v of finalisees) {
-    const h = v.date.getHours();
+    const h = parisHour(v.date);
     const cur = map.get(h);
     if (cur) {
       cur.nbVentes++;
@@ -233,7 +275,7 @@ function buildParTVA(finalisees: VenteWithRelations[]) {
 function buildParJourYear(finalisees: VenteWithRelations[]) {
   const map = new Map<string, { nbVentes: number; caTTC: number }>();
   for (const v of finalisees) {
-    const key = v.date.toISOString().slice(0, 10);
+    const key = parisDateKey(v.date);
     const cur = map.get(key);
     if (cur) {
       cur.nbVentes++;
@@ -341,7 +383,7 @@ export async function computePeriodStats(
     { caHT: number; caTTC: number; nbVentes: number }
   >();
   for (const v of finalisees) {
-    const key = v.date.toISOString().slice(0, 10);
+    const key = parisDateKey(v.date);
     const cur = byDay.get(key);
     if (cur) {
       cur.caHT += Number(v.totalHT);

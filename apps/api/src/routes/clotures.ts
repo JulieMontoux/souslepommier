@@ -176,6 +176,32 @@ function serializeCloture(cl: {
   };
 }
 
+cloturesRouter.delete("/today", async (c) => {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+
+  const cloture = await prisma.clotureCaisse.findFirst({
+    where: { date: { gte: start, lte: end } },
+  });
+  if (!cloture)
+    return c.json({ error: "Aucune clôture à annuler aujourd'hui" }, 404);
+
+  await prisma.clotureCaisse.delete({ where: { id: cloture.id } });
+
+  await logAudit({
+    userId: c.get("user").id,
+    action: "REOUVERTURE_CAISSE",
+    entite: "ClotureCaisse",
+    entiteId: cloture.id,
+    nouvelleValeur: { numeroCloture: cloture.numeroCloture },
+  });
+
+  return c.json({ success: true });
+});
+
 cloturesRouter.get("/:id", async (c) => {
   const cl = await prisma.clotureCaisse.findUnique({
     where: { id: c.req.param("id") },
