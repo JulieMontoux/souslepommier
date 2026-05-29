@@ -13,6 +13,7 @@ import type { ConfigTicket } from '@/types/ticket'
 interface CartPanelProps {
   cart: LigneCart[]
   onUpdateQte: (key: string, qte: number) => void
+  onUpdateRemise: (key: string, remise: number) => void
   onRemoveLine: (key: string) => void
   onClearCart: () => void
   onConfirmPayment: (paiements: PaiementInput[]) => Promise<void>
@@ -29,6 +30,7 @@ interface CartPanelProps {
 export function CartPanel({
   cart,
   onUpdateQte,
+  onUpdateRemise,
   onRemoveLine,
   onClearCart,
   onConfirmPayment,
@@ -93,6 +95,7 @@ export function CartPanel({
                 key={ligne.key}
                 ligne={ligne}
                 onUpdateQte={onUpdateQte}
+                onUpdateRemise={onUpdateRemise}
                 onRemoveLine={onRemoveLine}
               />
             ))}

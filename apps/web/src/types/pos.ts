@@ -23,4 +23,5 @@ export type LigneCart = {
   qte: number
   prixUnitaireHT: number
   tauxTVA: number
+  remise?: number
 }

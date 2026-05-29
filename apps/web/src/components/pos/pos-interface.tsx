@@ -74,11 +74,22 @@ export function POSInterface({
     }
   }
 
-  const [cart, setCart] = useState<LigneCart[]>([])
+  const [cart, setCart] = useState<LigneCart[]>(() => {
+    try {
+      const saved = localStorage.getItem('pos-cart')
+      return saved ? (JSON.parse(saved) as LigneCart[]) : []
+    } catch {
+      return []
+    }
+  })
   const [picking, setPicking] = useState<ProduitPOS | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [saving, setSaving] = useState(false)
   const [lastVente, setLastVente] = useState<{ id: string; numeroTicket: string } | null>(null)
+
+  useEffect(() => {
+    localStorage.setItem('pos-cart', JSON.stringify(cart))
+  }, [cart])
 
   function addToCart(produit: ProduitPOS) {
     if (produit.variantes.length === 0) {
@@ -128,9 +139,14 @@ export function POSInterface({
     setCart((prev) => prev.filter((l) => l.key !== key))
   }
 
+  function updateRemise(key: string, remise: number) {
+    setCart((prev) => prev.map((l) => (l.key === key ? { ...l, remise } : l)))
+  }
+
   // Computed totals
   const lignesComputed = cart.map((l) => {
-    const montantHT = roundFiscal(l.prixUnitaireHT * l.qte)
+    const remise = l.remise ?? 0
+    const montantHT = roundFiscal(l.prixUnitaireHT * l.qte * (1 - remise / 100))
     const montantTVA = calcMontantTVA(montantHT, l.tauxTVA)
     return { ...l, montantHT, montantTVA, montantTTC: roundFiscal(montantHT + montantTVA) }
   })
@@ -165,7 +181,11 @@ export function POSInterface({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          lignes: cart.map((l) => ({ varianteProduitId: l.varianteProduitId, qte: l.qte })),
+          lignes: cart.map((l) => ({
+            varianteProduitId: l.varianteProduitId,
+            qte: l.qte,
+            ...(l.remise && l.remise > 0 ? { remise: l.remise } : {}),
+          })),
           paiements,
         }),
       })
@@ -268,6 +288,7 @@ export function POSInterface({
         <CartPanel
           cart={cart}
           onUpdateQte={updateQte}
+          onUpdateRemise={updateRemise}
           onRemoveLine={removeLine}
           onClearCart={() => setCart([])}
           onConfirmPayment={handleEncaisser}
