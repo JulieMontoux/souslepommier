@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Lock, AlertTriangle } from 'lucide-react'
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth'
 import { DashboardStats } from '@/components/stats/dashboard-stats'
-import type { DayStats } from '@/types/stats'
+import type { DayStats, PeriodStats } from '@/types/stats'
 
 export default function DashboardPage() {
   const { state } = useAuth()
@@ -14,6 +15,18 @@ export default function DashboardPage() {
     queryKey: ['stats', 'today'],
     queryFn: () => api.get('/stats/today'),
     staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
+
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+  const weekFrom = sevenDaysAgo.toISOString()
+  const weekTo = new Date().toISOString()
+
+  const { data: weekStats } = useQuery<PeriodStats>({
+    queryKey: ['stats', 'week-sparkline'],
+    queryFn: () => api.get(`/stats/period?from=${weekFrom}&to=${weekTo}`),
+    staleTime: 60_000,
     refetchInterval: 60_000,
   })
 
@@ -58,6 +71,47 @@ export default function DashboardPage() {
               Voir le détail
             </Link>
           </p>
+        </div>
+      )}
+
+      {weekStats && weekStats.parJour.length > 0 && (
+        <div className="border-border bg-card rounded-xl border p-5 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+              7 derniers jours — CA TTC
+            </h2>
+            <span className="text-foreground text-sm font-semibold tabular-nums">
+              {weekStats.caTTC.toFixed(2).replace('.', ',')} €
+            </span>
+          </div>
+          <ResponsiveContainer width="100%" height={80}>
+            <BarChart data={weekStats.parJour} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <XAxis
+                dataKey="date"
+                tickFormatter={(d: string) =>
+                  new Date(d).toLocaleDateString('fr-FR', {
+                    weekday: 'short',
+                    timeZone: 'Europe/Paris',
+                  })
+                }
+                tick={{ fontSize: 10, fill: '#a1a1aa' }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                formatter={(v) => [`${Number(v).toFixed(2).replace('.', ',')} €`, 'CA TTC']}
+                labelFormatter={(d: string) =>
+                  new Date(d).toLocaleDateString('fr-FR', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'short',
+                    timeZone: 'Europe/Paris',
+                  })
+                }
+              />
+              <Bar dataKey="caTTC" fill="#16a34a" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       )}
 
