@@ -76,6 +76,84 @@ export function TicketModal({ venteId, venteNumero, config, onClose }: TicketMod
       .catch(() => setLoading(false))
   }, [venteId])
 
+  function handlePrint() {
+    if (!vente) return
+    const date = new Date(vente.date)
+    const lignesHtml = vente.lignes
+      .map((l) => {
+        const nom = l.variante.produit.nom
+        const poids = l.variante.poids ? `${Number(l.variante.poids)} kg` : ''
+        const emb = EMBALLAGE_LABELS[l.variante.emballage] ?? ''
+        const designation = [nom, poids, emb].filter(Boolean).join(' ')
+        const remise = Number(l.remise)
+        const remiseTxt = remise > 0 ? ` -${remise}%` : ''
+        return `<div class="ligne"><span>${designation}${remiseTxt}</span><span>${fmt(Number(l.montantTTC))}</span></div>
+<div class="ligne-detail">${Number(l.qte)} × ${Number(l.prixUnitaireHT).toFixed(2).replace('.', ',')} € HT (${Number(l.tauxTVA)}%)</div>`
+      })
+      .join('')
+
+    const tvaHtml = recapTVA(
+      vente.lignes.map((l) => ({ tauxTVA: Number(l.tauxTVA), montantHT: Number(l.montantHT) }))
+    )
+      .map(
+        (t) =>
+          `<div class="ligne"><span>TVA ${t.taux}%</span><span>${fmt(t.montantTVA)}</span></div>`
+      )
+      .join('')
+
+    const paiementsHtml = vente.paiements
+      .map((p) => {
+        let s = `<div class="ligne"><span>${MODE_LABELS[p.mode] ?? p.mode}</span><span>${fmt(Number(p.montant))}</span></div>`
+        if (Number(p.renduMonnaie) > 0)
+          s += `<div class="ligne bold"><span>Rendu monnaie</span><span>${fmt(Number(p.renduMonnaie))}</span></div>`
+        return s
+      })
+      .join('')
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;font-size:11px;width:58mm;max-width:58mm;padding:4mm 3mm}
+.center{text-align:center}.bold{font-weight:bold}
+.sep{border-top:1px dashed #000;margin:4px 0}
+.ligne{display:flex;justify-content:space-between;gap:4px}
+.ligne-detail{font-size:9px;color:#555;padding-left:4px;margin-bottom:2px}
+.total{font-size:13px;font-weight:bold;display:flex;justify-content:space-between}
+@media print{@page{margin:0;size:58mm auto}}
+</style></head><body>
+<div class="center bold">${config?.raisonSociale ?? 'Sous le Pommier'}</div>
+${config?.adresse ? `<div class="center">${config.adresse}</div>` : ''}
+${config?.codePostal || config?.ville ? `<div class="center">${[config.codePostal, config.ville].filter(Boolean).join(' ')}</div>` : ''}
+${config?.telephone ? `<div class="center">Tél. ${config.telephone}</div>` : ''}
+${config?.siret ? `<div class="center">SIRET ${config.siret}</div>` : ''}
+<div class="sep"></div>
+<div class="ligne"><span class="bold">Ticket n°</span><span>${vente.numeroTicket}</span></div>
+<div class="ligne"><span>Date</span><span>${date.toLocaleDateString('fr-FR')}</span></div>
+<div class="ligne"><span>Heure</span><span>${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></div>
+<div class="sep"></div>
+${lignesHtml}
+<div class="sep"></div>
+${tvaHtml}
+<div class="sep"></div>
+<div class="ligne"><span>Total HT</span><span>${fmt(roundFiscal(Number(vente.totalHT)))}</span></div>
+<div class="ligne"><span>Total TVA</span><span>${fmt(roundFiscal(Number(vente.totalTVA)))}</span></div>
+<div class="total"><span>TOTAL TTC</span><span>${fmt(roundFiscal(Number(vente.totalTTC)))}</span></div>
+<div class="sep"></div>
+${paiementsHtml}
+<div class="sep"></div>
+<div class="center">Merci de votre visite !</div>
+<div class="center" style="font-size:9px">Ticket dématérialisé (loi 2023)</div>
+</body></html>`
+
+    const w = window.open('', '_blank', 'width=300,height=600')
+    if (!w) return
+    w.document.write(html)
+    w.document.close()
+    w.focus()
+    w.print()
+    w.onafterprint = () => w.close()
+  }
+
   const date = vente ? new Date(vente.date) : null
 
   const lignes =
@@ -107,13 +185,20 @@ export function TicketModal({ venteId, venteNumero, config, onClose }: TicketMod
         <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
           <span className="font-semibold text-zinc-800">Ticket {venteNumero}</span>
           <div className="flex gap-2">
+            <button
+              onClick={handlePrint}
+              disabled={loading || !vente}
+              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-40"
+            >
+              Imprimer
+            </button>
             <a
               href={`/api/ventes/${venteId}/ticket`}
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
             >
-              🖨️ PDF
+              PDF A4
             </a>
             <Button onClick={onClose} className="h-8">
               ✓ Nouvelle vente
