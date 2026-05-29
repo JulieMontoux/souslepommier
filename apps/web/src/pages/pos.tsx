@@ -61,6 +61,7 @@ export default function PosPage() {
       return { isCloturee: false }
     },
     staleTime: 30_000,
+    refetchInterval: 30_000,
   })
 
   if (l1 || l2 || l3 || !user) {

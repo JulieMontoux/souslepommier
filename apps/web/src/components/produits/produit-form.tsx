@@ -464,15 +464,26 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
         )}
       </div>
 
-      {/* Confirmation suppression variante (non-sauvegardée) */}
+      {/* Confirmation suppression/désactivation variante */}
       <DeactivateDialog
         open={varianteDeleteIndex !== null}
         onOpenChange={(open) => !open && setVarianteDeleteIndex(null)}
         label="cette variante"
-        description="La variante sera retirée du formulaire."
+        description={
+          varianteDeleteIndex !== null && watchedVariantes[varianteDeleteIndex]?.id && produit
+            ? 'Cette variante sera désactivée et ne sera plus visible dans le POS.'
+            : 'La variante sera retirée du formulaire.'
+        }
         onConfirm={() => {
           if (varianteDeleteIndex === null) return
-          remove(varianteDeleteIndex)
+          const dbId = watchedVariantes[varianteDeleteIndex]?.id
+          if (dbId && produit) {
+            update(varianteDeleteIndex, { ...watchedVariantes[varianteDeleteIndex], actif: false })
+            void patchVarianteStatut(dbId, false)
+            toast.success('Variante désactivée')
+          } else {
+            remove(varianteDeleteIndex)
+          }
           setVarianteDeleteIndex(null)
         }}
       />

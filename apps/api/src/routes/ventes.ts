@@ -14,7 +14,7 @@ const venteCreateSchema = z.object({
     .array(
       z.object({
         varianteProduitId: z.string().min(1),
-        qte: z.number().int().positive(),
+        qte: z.number().positive(),
         remise: z.number().min(0).max(100).optional(),
       }),
     )
