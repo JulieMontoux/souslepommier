@@ -58,6 +58,14 @@ export type PeriodStats = {
   nbVentes: number
   panierMoyen: number
   parJour: JourPeriode[]
+  n1: {
+    caHT: number
+    caTTC: number
+    nbVentes: number
+    panierMoyen: number
+    deltaCA: number | null
+    deltaNbVentes: number | null
+  }
 }
 
 export type MoisStat = {

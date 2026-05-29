@@ -57,6 +57,14 @@ export type PeriodStats = {
   nbVentes: number;
   panierMoyen: number;
   parJour: { date: string; caHT: number; caTTC: number; nbVentes: number }[];
+  n1: {
+    caHT: number;
+    caTTC: number;
+    nbVentes: number;
+    panierMoyen: number;
+    deltaCA: number | null;
+    deltaNbVentes: number | null;
+  };
 };
 
 export type YearStats = {
@@ -343,9 +351,19 @@ export async function computePeriodStats(
   const toEnd = new Date(to);
   toEnd.setHours(23, 59, 59, 999);
 
-  const ventes = await fetchVentes(db, from, toEnd);
+  const n1From = new Date(from);
+  n1From.setFullYear(n1From.getFullYear() - 1);
+  const n1ToEnd = new Date(toEnd);
+  n1ToEnd.setFullYear(n1ToEnd.getFullYear() - 1);
+
+  const [ventes, ventesN1] = await Promise.all([
+    fetchVentes(db, from, toEnd),
+    fetchVentes(db, n1From, n1ToEnd),
+  ]);
+
   const { finalisees, caHT, caTTC, nbVentes, panierMoyen } =
     aggregateVentes(ventes);
+  const aggN1 = aggregateVentes(ventesN1);
 
   const byDay = new Map<
     string,
@@ -376,6 +394,15 @@ export async function computePeriodStats(
       nbVentes: v.nbVentes,
     }));
 
+  const deltaCA =
+    aggN1.caTTC > 0
+      ? roundFiscal(((caTTC - aggN1.caTTC) / aggN1.caTTC) * 100)
+      : null;
+  const deltaNbVentes =
+    aggN1.nbVentes > 0
+      ? roundFiscal(((nbVentes - aggN1.nbVentes) / aggN1.nbVentes) * 100)
+      : null;
+
   return {
     from: from.toISOString(),
     to: toEnd.toISOString(),
@@ -384,6 +411,14 @@ export async function computePeriodStats(
     nbVentes,
     panierMoyen,
     parJour,
+    n1: {
+      caHT: aggN1.caHT,
+      caTTC: aggN1.caTTC,
+      nbVentes: aggN1.nbVentes,
+      panierMoyen: aggN1.panierMoyen,
+      deltaCA,
+      deltaNbVentes,
+    },
   };
 }
 

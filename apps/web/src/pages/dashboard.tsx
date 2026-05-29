@@ -80,9 +80,19 @@ export default function DashboardPage() {
             <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
               7 derniers jours — CA TTC
             </h2>
-            <span className="text-foreground text-sm font-semibold tabular-nums">
-              {weekStats.caTTC.toFixed(2).replace('.', ',')} €
-            </span>
+            <div className="flex items-center gap-3">
+              {weekStats.n1.deltaCA !== null && (
+                <span
+                  className={`text-xs font-medium ${weekStats.n1.deltaCA >= 0 ? 'text-green-600' : 'text-red-500'}`}
+                >
+                  {weekStats.n1.deltaCA >= 0 ? '+' : ''}
+                  {weekStats.n1.deltaCA.toFixed(1)}% vs N-1
+                </span>
+              )}
+              <span className="text-foreground text-sm font-semibold tabular-nums">
+                {weekStats.caTTC.toFixed(2).replace('.', ',')} €
+              </span>
+            </div>
           </div>
           <ResponsiveContainer width="100%" height={80}>
             <BarChart data={weekStats.parJour} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
