@@ -65,6 +65,7 @@ ventesRouter.get("/", async (c) => {
       orderBy: { date: "desc" },
       include: {
         vendeur: { select: { id: true, nom: true, prenom: true } },
+        paiements: { select: { mode: true, montant: true } },
         _count: { select: { lignes: true } },
       },
     }),
