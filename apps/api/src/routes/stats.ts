@@ -1,7 +1,11 @@
 import { Hono } from "hono";
 import { prisma } from "../lib/prisma.js";
 import { requireRole, type HonoEnv } from "../lib/middleware.js";
-import { parisDayBounds, parisMonthStart } from "../lib/paris-tz.js";
+import {
+  parisDayBounds,
+  parisMonthStart,
+  parisYearBounds,
+} from "../lib/paris-tz.js";
 import {
   computeDayStats,
   computePeriodStats,
@@ -127,6 +131,81 @@ statsRouter.get("/products/top", async (c) => {
       .sort((a, b) => b.montantTTC - a.montantTTC)
       .slice(0, limit),
   );
+});
+
+statsRouter.get("/tva-export", async (c) => {
+  const yearParam = c.req.query("year");
+  const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
+  if (isNaN(year) || year < 2000 || year > 2100)
+    return c.json({ error: "Année invalide" }, 400);
+
+  const [from, to] = parisYearBounds(year);
+
+  const lignes = await prisma.ligneVente.findMany({
+    where: {
+      vente: { date: { gte: from, lte: to }, statut: "FINALISEE" },
+    },
+    select: {
+      tauxTVA: true,
+      montantHT: true,
+      montantTVA: true,
+      montantTTC: true,
+      vente: { select: { date: true } },
+    },
+    orderBy: { vente: { date: "asc" } },
+  });
+
+  const byMonthTaux = new Map<
+    string,
+    { baseHT: number; montantTVA: number; montantTTC: number }
+  >();
+  for (const l of lignes) {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Paris",
+      year: "numeric",
+      month: "2-digit",
+    }).formatToParts(l.vente.date);
+    const yyyy = parts.find((p) => p.type === "year")?.value ?? "";
+    const mm = parts.find((p) => p.type === "month")?.value ?? "";
+    const m = `${yyyy}-${mm}`;
+    const taux = Number(l.tauxTVA).toFixed(1);
+    const key = `${m};${taux}`;
+    const cur = byMonthTaux.get(key);
+    if (cur) {
+      cur.baseHT += Number(l.montantHT);
+      cur.montantTVA += Number(l.montantTVA);
+      cur.montantTTC += Number(l.montantTTC);
+    } else {
+      byMonthTaux.set(key, {
+        baseHT: Number(l.montantHT),
+        montantTVA: Number(l.montantTVA),
+        montantTTC: Number(l.montantTTC),
+      });
+    }
+  }
+
+  const rows = [
+    "mois;taux_tva;base_ht;montant_tva;montant_ttc",
+    ...Array.from(byMonthTaux.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, v]) => {
+        const [mois, taux] = key.split(";");
+        return [
+          mois,
+          taux,
+          roundFiscal(v.baseHT).toFixed(2),
+          roundFiscal(v.montantTVA).toFixed(2),
+          roundFiscal(v.montantTTC).toFixed(2),
+        ].join(";");
+      }),
+  ].join("\n");
+
+  return new Response(rows, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="tva-${year}.csv"`,
+    },
+  });
 });
 
 statsRouter.get("/export", async (c) => {
