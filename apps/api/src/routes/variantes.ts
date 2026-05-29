@@ -123,6 +123,36 @@ variantesRouter.put("/:id", requireRole("GERANT"), async (c) => {
   return c.json(variante);
 });
 
+variantesRouter.patch("/bulk-prix", requireRole("GERANT"), async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const schema = z.array(
+    z.object({ id: z.string().min(1), prixHT: z.number().min(0) }),
+  );
+  const parsed = schema.safeParse(body);
+  if (!parsed.success)
+    return c.json(
+      { error: "Données invalides", details: parsed.error.flatten() },
+      422,
+    );
+
+  const updates = await Promise.all(
+    parsed.data.map(async ({ id, prixHT }) => {
+      const existing = await prisma.varianteProduit.findUnique({
+        where: { id },
+      });
+      if (!existing) return null;
+      const prixTTC = calcPrixTTC(prixHT, Number(existing.tauxTVA));
+      return prisma.varianteProduit.update({
+        where: { id },
+        data: { prixHT, prixTTC },
+        select: { id: true, prixHT: true, prixTTC: true },
+      });
+    }),
+  );
+
+  return c.json({ updated: updates.filter(Boolean).length });
+});
+
 variantesRouter.patch("/:id/statut", requireRole("GERANT"), async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => null);

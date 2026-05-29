@@ -93,10 +93,18 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
             {produits.length} produit{produits.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Link to="/dashboard/produits/nouveau" className={cn(buttonVariants(), 'gap-2')}>
-          <Plus className="h-4 w-4" />
-          Nouveau produit
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            to="/dashboard/produits/prix"
+            className={cn(buttonVariants({ variant: 'outline' }), 'gap-2')}
+          >
+            Maj prix
+          </Link>
+          <Link to="/dashboard/produits/nouveau" className={cn(buttonVariants(), 'gap-2')}>
+            <Plus className="h-4 w-4" />
+            Nouveau produit
+          </Link>
+        </div>
       </div>
 
       {/* Filtres */}

@@ -28,6 +28,7 @@ const AuditPage = lazy(() => import('./pages/audit'))
 const RgpdPage = lazy(() => import('./pages/rgpd'))
 const PosPage = lazy(() => import('./pages/pos'))
 const LegalRgpdPage = lazy(() => import('./pages/legal-rgpd'))
+const PrixBulkPage = lazy(() => import('./pages/prix-bulk'))
 
 const PageLoader = () => <div className="bg-muted m-6 h-full animate-pulse rounded-xl" />
 
@@ -112,6 +113,7 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/dashboard/produits" element={<ProduitsPage />} />
             <Route path="/dashboard/produits/nouveau" element={<ProduitNewPage />} />
+            <Route path="/dashboard/produits/prix" element={<PrixBulkPage />} />
             <Route path="/dashboard/produits/:id" element={<ProduitEditPage />} />
             <Route path="/dashboard/vendeurs" element={<VendeurListPage />} />
             <Route path="/dashboard/vendeurs/:id" element={<VendeurDetailPage />} />
