@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { prisma } from "../lib/prisma.js";
 import { requireRole, type HonoEnv } from "../lib/middleware.js";
+import { parisDayBounds, parisMonthStart } from "../lib/paris-tz.js";
 import {
   computeDayStats,
   computePeriodStats,
@@ -45,11 +46,8 @@ statsRouter.get("/payment-modes", async (c) => {
   const from = c.req.query("from");
   const to = c.req.query("to");
   const now = new Date();
-  const fromDate = from
-    ? new Date(from)
-    : new Date(now.getFullYear(), now.getMonth(), 1);
-  const toEnd = to ? new Date(to) : now;
-  toEnd.setHours(23, 59, 59, 999);
+  const fromDate = from ? new Date(from) : parisMonthStart(now);
+  const toEnd = to ? parisDayBounds(new Date(to))[1] : parisDayBounds(now)[1];
 
   const ventes = await prisma.vente.findMany({
     where: { date: { gte: fromDate, lte: toEnd }, statut: "FINALISEE" },
@@ -86,10 +84,8 @@ statsRouter.get("/products/top", async (c) => {
   const to = c.req.query("to");
   const limit = parseInt(c.req.query("limit") ?? "10");
   const now = new Date();
-  const fromDate = from
-    ? new Date(from)
-    : new Date(now.getFullYear(), now.getMonth(), 1);
-  const toDate = to ? new Date(to) : now;
+  const fromDate = from ? new Date(from) : parisMonthStart(now);
+  const toDate = to ? parisDayBounds(new Date(to))[1] : parisDayBounds(now)[1];
 
   const ventes = await prisma.vente.findMany({
     where: { date: { gte: fromDate, lte: toDate }, statut: "FINALISEE" },

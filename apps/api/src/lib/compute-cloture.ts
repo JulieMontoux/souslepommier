@@ -1,11 +1,9 @@
 import { roundFiscal } from "./tva.js";
+import { parisDayBounds } from "./paris-tz.js";
 import type { PrismaClient } from "@souslepommier/database";
 
 export async function computeClotureApercu(db: PrismaClient, date: Date) {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
+  const [start, end] = parisDayBounds(date);
 
   const ventes = await db.vente.findMany({
     where: { date: { gte: start, lte: end } },

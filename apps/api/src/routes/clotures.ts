@@ -7,6 +7,7 @@ import { logAudit } from "../lib/audit.js";
 import { computeClotureApercu } from "../lib/compute-cloture.js";
 import { computeClotureHash } from "../lib/cloture-hash.js";
 import { ClotureDocument } from "../pdf/cloture-pdf.js";
+import { parisDayBounds } from "../lib/paris-tz.js";
 import type { Prisma } from "@souslepommier/database";
 
 export const cloturesRouter = new Hono<HonoEnv>();
@@ -35,10 +36,7 @@ cloturesRouter.get("/", async (c) => {
 
 cloturesRouter.post("/", async (c) => {
   const now = new Date();
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
+  const [start, end] = parisDayBounds(now);
 
   const existing = await prisma.clotureCaisse.findFirst({
     where: { date: { gte: start, lte: end } },
@@ -114,10 +112,7 @@ cloturesRouter.post("/", async (c) => {
 
 cloturesRouter.get("/apercu", async (c) => {
   const now = new Date();
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
+  const [start, end] = parisDayBounds(now);
 
   const existing = await prisma.clotureCaisse.findFirst({
     where: { date: { gte: start, lte: end } },
@@ -177,11 +172,7 @@ function serializeCloture(cl: {
 }
 
 cloturesRouter.delete("/today", async (c) => {
-  const now = new Date();
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
+  const [start, end] = parisDayBounds(new Date());
 
   const cloture = await prisma.clotureCaisse.findFirst({
     where: { date: { gte: start, lte: end } },

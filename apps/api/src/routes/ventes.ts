@@ -1,6 +1,7 @@
 import React from "react";
 import { Hono } from "hono";
 import { z } from "zod";
+import { parisDayBounds } from "../lib/paris-tz.js";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "../lib/prisma.js";
 import { authMiddleware, type HonoEnv } from "../lib/middleware.js";
@@ -112,12 +113,10 @@ ventesRouter.post("/", async (c) => {
 });
 
 ventesRouter.get("/today", async (c) => {
-  const now = new Date();
-  const startOfDay = new Date(now);
-  startOfDay.setHours(0, 0, 0, 0);
+  const [startOfDay, endOfDay] = parisDayBounds(new Date());
 
   const ventes = await prisma.vente.findMany({
-    where: { date: { gte: startOfDay } },
+    where: { date: { gte: startOfDay, lte: endOfDay } },
     include: {
       vendeur: { select: { id: true, nom: true, prenom: true } },
       lignes: { include: { variante: { include: { produit: true } } } },
