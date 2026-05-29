@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { ShoppingBasket, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -51,10 +52,11 @@ function monthStartLocal() {
 }
 
 export default function VentesPage() {
-  const [from, setFrom] = useState(monthStartLocal)
-  const [to, setTo] = useState(todayLocal)
-  const [vendeurId, setVendeurId] = useState('')
-  const [statut, setStatut] = useState('')
+  const [searchParams] = useSearchParams()
+  const [from, setFrom] = useState(() => searchParams.get('from') ?? monthStartLocal())
+  const [to, setTo] = useState(() => searchParams.get('to') ?? todayLocal())
+  const [vendeurId, setVendeurId] = useState(() => searchParams.get('vendeurId') ?? '')
+  const [statut, setStatut] = useState(() => searchParams.get('statut') ?? '')
   const [page, setPage] = useState(1)
 
   const params = new URLSearchParams({ limit: String(LIMIT), page: String(page) })
