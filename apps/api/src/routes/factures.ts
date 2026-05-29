@@ -273,6 +273,72 @@ facturesRouter.post("/:id/annuler", requireRole("GERANT"), async (c) => {
   return c.json(serializeFacture(facture));
 });
 
+facturesRouter.post("/:id/dupliquer", requireRole("GERANT"), async (c) => {
+  const id = c.req.param("id");
+  const original = await prisma.facture.findUnique({
+    where: { id },
+    include: { lignes: { orderBy: [{ id: "asc" }] } },
+  });
+  if (!original) return c.json({ error: "Facture introuvable" }, 404);
+
+  const nouvelle = await prisma.$transaction(async (tx) => {
+    const year = new Date().getFullYear();
+    const last = await tx.facture.findFirst({
+      where: { numero: { startsWith: `F-${year}-` } },
+      orderBy: { numero: "desc" },
+    });
+    let seq = 1;
+    if (last) {
+      const parts = last.numero.split("-");
+      const lastSeq = parseInt(parts[parts.length - 1]);
+      if (!isNaN(lastSeq)) seq = lastSeq + 1;
+    }
+    const numero = `F-${year}-${String(seq).padStart(6, "0")}`;
+
+    return tx.facture.create({
+      data: {
+        numero,
+        clientId: original.clientId,
+        venteId: null,
+        factureOriginaleId: original.id,
+        dateEmission: new Date(),
+        dateEcheance: null,
+        dateLivraison: null,
+        notes: original.notes,
+        totalHT: original.totalHT,
+        totalTVA: original.totalTVA,
+        totalTTC: original.totalTTC,
+        statut: "BROUILLON",
+        lignes: {
+          create: original.lignes.map((l) => ({
+            designation: l.designation,
+            qte: l.qte,
+            prixUnitaireHT: l.prixUnitaireHT,
+            tauxTVA: l.tauxTVA,
+            remise: l.remise,
+            montantHT: l.montantHT,
+            montantTVA: l.montantTVA,
+            montantTTC: l.montantTTC,
+          })),
+        },
+      },
+    });
+  });
+
+  await logAudit({
+    userId: c.get("user").id,
+    action: "CREATE_FACTURE",
+    entite: "Facture",
+    entiteId: nouvelle.id,
+    nouvelleValeur: {
+      numero: nouvelle.numero,
+      dupliqueeDeId: original.id,
+      dupliqueeDeNumero: original.numero,
+    },
+  });
+  return c.json(serializeFacture(nouvelle), 201);
+});
+
 facturesRouter.get("/:id/pdf", async (c) => {
   const facture = await prisma.facture.findUnique({
     where: { id: c.req.param("id") },
