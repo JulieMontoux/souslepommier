@@ -5,6 +5,7 @@ export type ProduitPOSVariante = {
   prixHT: number
   tauxTVA: number
   prixTTC: number
+  sku: string | null
 }
 
 export type ProduitPOS = {

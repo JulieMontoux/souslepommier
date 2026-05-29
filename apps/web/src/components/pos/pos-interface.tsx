@@ -156,11 +156,63 @@ export function POSInterface({
     lignesComputed.map((l) => ({ tauxTVA: l.tauxTVA, montantHT: l.montantHT }))
   )
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts + barcode scanner (douchette USB/BT sends rapid keystrokes ending with Enter)
   useEffect(() => {
+    let scanBuffer = ''
+    let lastKeyTime = 0
+
     function onKey(e: KeyboardEvent) {
-      // Don't intercept when typing in inputs
-      if ((e.target as HTMLElement).tagName === 'INPUT') return
+      const now = Date.now()
+      const isInput = (e.target as HTMLElement).tagName === 'INPUT'
+
+      // Barcode scanner detection: rapid keystrokes (< 50ms apart) not in an input
+      if (!isInput && e.key.length === 1) {
+        if (now - lastKeyTime < 50) {
+          scanBuffer += e.key
+        } else {
+          scanBuffer = e.key
+        }
+        lastKeyTime = now
+        return
+      }
+
+      if (!isInput && e.key === 'Enter' && scanBuffer.length >= 2 && now - lastKeyTime < 200) {
+        const sku = scanBuffer.trim()
+        scanBuffer = ''
+        lastKeyTime = 0
+        // Find variante by SKU
+        let found: { produit: ProduitPOS; variante: ProduitPOSVariante } | null = null
+        for (const p of produits) {
+          for (const v of p.variantes) {
+            if (v.sku && v.sku === sku) {
+              found = { produit: p, variante: v }
+              break
+            }
+          }
+          if (found) break
+        }
+        if (found) {
+          addVariante(found.produit, found.variante)
+          toast.success(`${found.produit.nom} ajouté (SKU: ${sku})`)
+        } else {
+          toast.error(`SKU inconnu : ${sku}`)
+        }
+        return
+      }
+
+      // Reset scan buffer on slow keypresses or special keys
+      if (e.key.length === 1 && isInput) {
+        scanBuffer = ''
+        lastKeyTime = 0
+      }
+
+      if (!isInput) {
+        scanBuffer = ''
+        lastKeyTime = 0
+      }
+
+      if (isInput) return
+
       if (e.key === 'Escape') {
         if (picking) setPicking(null)
         else if (confirming) setConfirming(false)
@@ -171,7 +223,8 @@ export function POSInterface({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [picking, confirming, cart.length])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picking, confirming, cart.length, produits])
 
   async function handleEncaisser(paiements: PaiementInput[]) {
     if (cart.length === 0 || saving) return
