@@ -22,6 +22,7 @@ import { stockRouter } from "./routes/stock.js";
 import { abonnementsRouter } from "./routes/abonnements.js";
 import { pointsDeVenteRouter } from "./routes/points-de-vente.js";
 import { setupRouter } from "./routes/setup.js";
+import { initAutoClose } from "./lib/auto-cloture.js";
 
 const app = new Hono();
 
@@ -66,6 +67,7 @@ const port = parseInt(process.env.PORT ?? "3001");
 
 serve({ fetch: app.fetch, port }, () => {
   console.log(`API running on http://localhost:${port}`);
+  void initAutoClose();
 });
 
 export default app;
