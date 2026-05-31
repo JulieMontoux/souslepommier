@@ -36,7 +36,7 @@ export function Header({ user }: HeaderProps) {
   }
 
   return (
-    <header className="border-border bg-card flex h-14 shrink-0 items-center justify-between gap-4 border-b px-6">
+    <header className="border-border bg-card/80 flex h-14 shrink-0 items-center justify-between gap-4 border-b px-6 shadow-sm backdrop-blur-sm">
       <div className="flex items-center gap-3">
         <CommandPalette />
         {!online && (

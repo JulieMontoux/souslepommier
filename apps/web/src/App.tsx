@@ -63,7 +63,7 @@ function DashboardLayout() {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header user={user} />
-        <main className="flex-1 overflow-y-auto px-8 py-6">
+        <main className="flex-1 overflow-y-auto px-8 py-7">
           <div className="mx-auto max-w-6xl">
             <Suspense fallback={<PageLoader />}>
               <Outlet />

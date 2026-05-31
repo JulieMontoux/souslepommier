@@ -60,14 +60,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="bg-background flex min-h-screen items-center justify-center p-4">
-      <Card className="relative z-10 w-full max-w-sm border-slate-200 bg-white shadow-2xl">
+    <div
+      className="relative flex min-h-screen items-center justify-center overflow-hidden p-4"
+      style={{
+        background:
+          'linear-gradient(135deg, oklch(0.97 0.02 150) 0%, oklch(0.99 0.005 150) 60%, oklch(0.97 0.015 200) 100%)',
+      }}
+    >
+      {/* Decorative blobs */}
+      <div
+        className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full opacity-30"
+        style={{ background: 'radial-gradient(circle, oklch(0.85 0.12 150), transparent 70%)' }}
+      />
+      <div
+        className="pointer-events-none absolute -right-24 -bottom-24 h-80 w-80 rounded-full opacity-20"
+        style={{ background: 'radial-gradient(circle, oklch(0.80 0.14 150), transparent 70%)' }}
+      />
+
+      <Card className="relative z-10 w-full max-w-sm border-green-100 bg-white/90 shadow-2xl shadow-green-900/10 backdrop-blur-sm">
         <CardHeader className="space-y-1 pb-4 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-600 shadow-lg shadow-green-900/40">
-            <Leaf className="h-6 w-6 text-white" />
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-600 shadow-lg shadow-green-600/30">
+            <Leaf className="h-7 w-7 text-white" />
           </div>
-          <CardTitle className="text-xl font-semibold text-slate-900">Sous le Pommier</CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardTitle className="text-xl font-bold text-green-950">Sous le Pommier</CardTitle>
+          <CardDescription className="text-green-800/60">
             Connectez-vous à votre espace caisse
           </CardDescription>
         </CardHeader>
@@ -79,7 +95,7 @@ export default function LoginPage() {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-700">
+              <Label htmlFor="email" className="font-medium text-green-900/80">
                 Email
               </Label>
               <Input
@@ -94,7 +110,7 @@ export default function LoginPage() {
               {fieldErrors.email && <p className="text-xs text-red-500">{fieldErrors.email}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-700">
+              <Label htmlFor="password" className="font-medium text-green-900/80">
                 Mot de passe
               </Label>
               <Input
@@ -109,12 +125,8 @@ export default function LoginPage() {
                 <p className="text-xs text-red-500">{fieldErrors.password}</p>
               )}
             </div>
-            <Button
-              type="submit"
-              className="w-full bg-green-600 hover:bg-green-700"
-              disabled={pending}
-            >
-              {pending ? 'Connexion...' : 'Se connecter'}
+            <Button type="submit" className="w-full" disabled={pending}>
+              {pending ? 'Connexion…' : 'Se connecter'}
             </Button>
           </form>
         </CardContent>
