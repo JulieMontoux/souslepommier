@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -12,13 +13,18 @@
 
 # testing
 /coverage
+**/coverage/
 
 # next.js
 /.next/
+**/apps/web/.next/
 /out/
+**/out/
 
 # production
 /build
+**/dist/
+apps/api/dist/
 
 # misc
 .DS_Store
@@ -40,8 +46,21 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/src/generated/prisma
+src/generated/
+packages/database/src/generated/
 
 # Uploads utilisateur (logos, images) — sauf les .gitkeep
 /public/uploads/**
 !/public/uploads/**/.gitkeep
+apps/web/public/uploads/**
+!apps/web/public/uploads/**/.gitkeep
+
+# Turbo cache
+.turbo/
+**/.turbo/
+
+# Next.js build output (all apps)
+**/.next/
+
+# NestJS compiled output
+apps/api/dist/
