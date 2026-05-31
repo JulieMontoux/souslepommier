@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
-import { ShoppingBasket, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ShoppingBasket, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 
 const STATUT_LABELS: Record<
   string,
@@ -90,13 +91,21 @@ export default function VentesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-foreground text-2xl font-bold">Ventes</h1>
-        {meta && (
-          <p className="text-muted-foreground text-sm">
-            {meta.total} vente{meta.total !== 1 ? 's' : ''}
-          </p>
-        )}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-foreground text-2xl font-bold">Ventes</h1>
+          {meta && (
+            <p className="text-muted-foreground text-sm">
+              {meta.total} vente{meta.total !== 1 ? 's' : ''}
+            </p>
+          )}
+        </div>
+        <Button asChild variant="outline" className="shrink-0 gap-2">
+          <Link to="/dashboard/ventes/saisie-manuelle">
+            <Plus className="h-4 w-4" />
+            Saisie manuelle
+          </Link>
+        </Button>
       </div>
 
       {/* Filters */}

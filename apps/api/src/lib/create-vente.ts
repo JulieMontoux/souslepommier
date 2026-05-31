@@ -23,16 +23,22 @@ export async function createVente(
   vendeurId: string,
   lignes: LigneVenteInput[],
   paiements: PaiementVenteInput[],
+  options?: { dateOverride?: Date; skipClotureCheck?: boolean },
 ) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const now = options?.dateOverride ?? new Date();
 
-  const cloture = await prisma.clotureCaisse.findFirst({
-    where: { date: { gte: today, lt: tomorrow } },
-  });
-  if (cloture) throw venteError("La caisse est clôturée pour aujourd'hui", 409);
+  if (!options?.skipClotureCheck) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const cloture = await prisma.clotureCaisse.findFirst({
+      where: { date: { gte: today, lt: tomorrow } },
+    });
+    if (cloture)
+      throw venteError("La caisse est clôturée pour aujourd'hui", 409);
+  }
 
   const varianteIds = lignes.map((l) => l.varianteProduitId);
   const variantes = await prisma.varianteProduit.findMany({
@@ -73,7 +79,7 @@ export async function createVente(
     10000;
 
   return prisma.$transaction(async (tx) => {
-    const year = new Date().getFullYear();
+    const year = now.getFullYear();
     const lastVente = await tx.vente.findFirst({
       where: { numeroTicket: { startsWith: `T-${year}-` } },
       orderBy: { numeroTicket: "desc" },
@@ -92,7 +98,6 @@ export async function createVente(
       select: { hash: true },
     });
     const hashPrecedent = lastFinalisee?.hash ?? null;
-    const now = new Date();
     const hash = createHmac("sha256", process.env.SIGNING_SECRET ?? "")
       .update(
         JSON.stringify({

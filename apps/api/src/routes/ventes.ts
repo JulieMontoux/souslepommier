@@ -4,7 +4,11 @@ import { z } from "zod";
 import { parisDayBounds } from "../lib/paris-tz.js";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "../lib/prisma.js";
-import { authMiddleware, type HonoEnv } from "../lib/middleware.js";
+import {
+  authMiddleware,
+  requireRole,
+  type HonoEnv,
+} from "../lib/middleware.js";
 import { logAudit } from "../lib/audit.js";
 import { createVente } from "../lib/create-vente.js";
 import { recapTVA } from "../lib/tva.js";
@@ -110,6 +114,65 @@ ventesRouter.post("/", async (c) => {
       { error: e.message ?? "Erreur lors de la création" },
       (e.status as 409 | 404) ?? 500,
     );
+  }
+});
+
+// Manual retroactive vente entry for a past day (GERANT only)
+const venteManuelleSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format YYYY-MM-DD requis"),
+  lignes: z
+    .array(
+      z.object({
+        varianteProduitId: z.string().min(1),
+        qte: z.number().positive(),
+        remise: z.number().min(0).max(100).optional(),
+      }),
+    )
+    .min(1),
+  paiements: z
+    .array(
+      z.object({
+        mode: z.enum(["ESPECES", "CB", "CHEQUE", "VIREMENT", "TICKET_RESTO"]),
+        montant: z.number().positive(),
+        reference: z.string().optional(),
+        renduMonnaie: z.number().min(0).optional(),
+      }),
+    )
+    .min(1),
+});
+
+ventesRouter.post("/manuel", requireRole("GERANT"), async (c) => {
+  const user = c.get("user");
+  const body = await c.req.json().catch(() => null);
+  const parsed = venteManuelleSchema.safeParse(body);
+  if (!parsed.success)
+    return c.json(
+      { error: "Données invalides", details: parsed.error.flatten() },
+      422,
+    );
+
+  const dateOverride = new Date(parsed.data.date + "T12:00:00");
+  try {
+    const vente = await createVente(
+      user.id,
+      parsed.data.lignes,
+      parsed.data.paiements,
+      { dateOverride, skipClotureCheck: true },
+    );
+    await logAudit({
+      userId: user.id,
+      action: "CREATE_VENTE_MANUELLE",
+      entite: "Vente",
+      entiteId: vente.id,
+      nouvelleValeur: {
+        numeroTicket: vente.numeroTicket,
+        date: parsed.data.date,
+      },
+    });
+    return c.json(vente, 201);
+  } catch (err: unknown) {
+    const e = err as { status?: number; message?: string };
+    return c.json({ error: e.message ?? "Erreur" }, (e.status as 404) ?? 500);
   }
 });
 

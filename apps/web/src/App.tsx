@@ -30,6 +30,7 @@ const PosPage = lazy(() => import('./pages/pos'))
 const LegalRgpdPage = lazy(() => import('./pages/legal-rgpd'))
 const PrixBulkPage = lazy(() => import('./pages/prix-bulk'))
 const StockPage = lazy(() => import('./pages/stock'))
+const VenteManuellePage = lazy(() => import('./pages/vente-manuelle'))
 
 const PageLoader = () => <div className="bg-muted m-6 h-full animate-pulse rounded-xl" />
 
@@ -109,13 +110,18 @@ export default function App() {
           }
         />
 
+        {/* Produits — accessible to all authenticated users (GERANT + VENDEUR) */}
+        <Route element={<DashboardLayout />}>
+          <Route path="/dashboard/produits" element={<ProduitsPage />} />
+          <Route path="/dashboard/produits/nouveau" element={<ProduitNewPage />} />
+          <Route path="/dashboard/produits/:id" element={<ProduitEditPage />} />
+        </Route>
+
+        {/* All other dashboard routes — GERANT only */}
         <Route element={<GerantGuard />}>
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/dashboard/produits" element={<ProduitsPage />} />
-            <Route path="/dashboard/produits/nouveau" element={<ProduitNewPage />} />
             <Route path="/dashboard/produits/prix" element={<PrixBulkPage />} />
-            <Route path="/dashboard/produits/:id" element={<ProduitEditPage />} />
             <Route path="/dashboard/vendeurs" element={<VendeurListPage />} />
             <Route path="/dashboard/vendeurs/:id" element={<VendeurDetailPage />} />
             <Route path="/dashboard/clients" element={<ClientListPage />} />
@@ -123,6 +129,7 @@ export default function App() {
             <Route path="/dashboard/clients/:id" element={<ClientDetailPage />} />
             <Route path="/dashboard/clients/:id/modifier" element={<ClientEditPage />} />
             <Route path="/dashboard/ventes" element={<VentesPage />} />
+            <Route path="/dashboard/ventes/saisie-manuelle" element={<VenteManuellePage />} />
             <Route path="/dashboard/stock" element={<StockPage />} />
             <Route path="/dashboard/clotures" element={<CloturesPage />} />
             <Route path="/dashboard/clotures/:id" element={<ClotureDetailPage />} />
