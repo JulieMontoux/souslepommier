@@ -11,30 +11,44 @@ import { sendTestEmail } from "../lib/email.js";
 
 const CONFIG_ID = "default";
 
+const emptyToNull = z.preprocess((v) => (v === "" ? null : v), z.string().nullable().optional());
+const emailOrNull = z.preprocess(
+  (v) => (v === "" ? null : v),
+  z.string().email().nullable().optional()
+);
+const portOrNull = z.preprocess(
+  (v) => (v === "" || v === null || v === undefined ? null : Number(v)),
+  z.number().int().min(1).max(65535).nullable().optional()
+);
+const capitalOrNull = z.preprocess(
+  (v) => (v === "" || v === null || v === undefined || (typeof v === "number" && isNaN(v)) ? null : Number(v)),
+  z.number().positive().nullable().optional()
+);
+
 const configSchema = z.object({
   raisonSociale: z.string().min(1).max(200),
-  formeJuridique: z.string().optional().nullable(),
-  capitalSocial: z.number().positive().optional().nullable(),
-  siret: z.string().optional().nullable(),
-  tvaIntracommunautaire: z.string().optional().nullable(),
-  adresse: z.string().optional().nullable(),
-  codePostal: z.string().optional().nullable(),
-  ville: z.string().optional().nullable(),
+  formeJuridique: emptyToNull,
+  capitalSocial: capitalOrNull,
+  siret: emptyToNull,
+  tvaIntracommunautaire: emptyToNull,
+  adresse: emptyToNull,
+  codePostal: emptyToNull,
+  ville: emptyToNull,
   pays: z.string().default("FR"),
-  telephone: z.string().optional().nullable(),
-  email: z.string().email().optional().nullable(),
-  iban: z.string().optional().nullable(),
-  rcs: z.string().optional().nullable(),
-  villeRCS: z.string().optional().nullable(),
-  codeAPE: z.string().optional().nullable(),
+  telephone: emptyToNull,
+  email: emailOrNull,
+  iban: emptyToNull,
+  rcs: emptyToNull,
+  villeRCS: emptyToNull,
+  codeAPE: emptyToNull,
   regimeTVA: z.string().default("NORMAL"),
-  responsableRGPD: z.string().optional().nullable(),
-  emailRGPD: z.string().email().optional().nullable(),
-  smtpHost: z.string().optional().nullable(),
-  smtpPort: z.number().int().min(1).max(65535).optional().nullable(),
-  smtpUser: z.string().optional().nullable(),
-  smtpPass: z.string().optional().nullable(),
-  smtpFrom: z.string().optional().nullable(),
+  responsableRGPD: emptyToNull,
+  emailRGPD: emailOrNull,
+  smtpHost: emptyToNull,
+  smtpPort: portOrNull,
+  smtpUser: emptyToNull,
+  smtpPass: emptyToNull,
+  smtpFrom: emptyToNull,
   smtpTls: z.boolean().default(true),
 });
 
