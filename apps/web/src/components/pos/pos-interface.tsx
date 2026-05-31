@@ -8,6 +8,8 @@ import { toast } from 'sonner'
 import { LogOut, Leaf } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { recapTVA, roundFiscal, calcMontantTVA } from '@/lib/tva'
+import { enqueueVente, syncOfflineVentes } from '@/lib/offline-queue'
+import { useNetwork } from '@/hooks/use-network'
 import { VariantePicker } from './variante-picker'
 import { WeightInputModal } from './weight-input-modal'
 import { PaiementModal } from './paiement-modal'
@@ -57,6 +59,7 @@ export function POSInterface({
   const navigate = useNavigate()
   const { logout } = useAuth()
   const queryClient = useQueryClient()
+  const online = useNetwork()
   const [reopening, setReopening] = useState(false)
 
   async function handleLogout() {
@@ -99,6 +102,21 @@ export function POSInterface({
   useEffect(() => {
     localStorage.setItem('pos-cart', JSON.stringify(cart))
   }, [cart])
+
+  // Auto-sync offline queue when network returns
+  useEffect(() => {
+    if (!online) return
+    syncOfflineVentes()
+      .then(({ synced }) => {
+        if (synced > 0) {
+          toast.success(
+            `${synced} vente${synced > 1 ? 's' : ''} hors ligne synchronisée${synced > 1 ? 's' : ''}`
+          )
+          void queryClient.invalidateQueries({ queryKey: ['produits', 'pos'] })
+        }
+      })
+      .catch(() => {})
+  }, [online])
 
   function addToCart(produit: ProduitPOS) {
     if (produit.variantes.length === 0) {
@@ -272,18 +290,31 @@ export function POSInterface({
   async function handleEncaisser(paiements: PaiementInput[]) {
     if (cart.length === 0 || saving) return
     setSaving(true)
+
+    const payload = {
+      lignes: cart.map((l) => ({
+        varianteProduitId: l.varianteProduitId,
+        qte: l.qte,
+        ...(l.remise && l.remise > 0 ? { remise: l.remise } : {}),
+      })),
+      paiements,
+    }
+
+    if (!online) {
+      // Store locally, sync when network returns
+      await enqueueVente(payload)
+      toast.success('Vente enregistrée hors ligne — sera synchronisée dès le retour du réseau')
+      setCart([])
+      setConfirming(false)
+      setSaving(false)
+      return
+    }
+
     try {
       const res = await fetch('/api/ventes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lignes: cart.map((l) => ({
-            varianteProduitId: l.varianteProduitId,
-            qte: l.qte,
-            ...(l.remise && l.remise > 0 ? { remise: l.remise } : {}),
-          })),
-          paiements,
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -296,7 +327,11 @@ export function POSInterface({
       setConfirming(false)
       void queryClient.invalidateQueries({ queryKey: ['produits', 'pos'] })
     } catch {
-      toast.error('Erreur réseau')
+      // Network error mid-request — queue offline
+      await enqueueVente(payload)
+      toast.warning('Vente sauvegardée hors ligne')
+      setCart([])
+      setConfirming(false)
     } finally {
       setSaving(false)
     }
@@ -359,6 +394,11 @@ export function POSInterface({
             <Leaf className="h-4 w-4 text-white" />
           </div>
           <span className="text-sidebar-foreground font-semibold">Caisse</span>
+          {!online && (
+            <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-400">
+              Hors ligne
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sidebar-foreground/70 text-sm">

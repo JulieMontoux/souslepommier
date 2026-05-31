@@ -10,9 +10,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, User, Wifi, WifiOff } from 'lucide-react'
 import { CommandPalette } from './command-palette'
 import { useAuth } from '@/contexts/auth'
+import { useNetwork } from '@/hooks/use-network'
 
 interface HeaderProps {
   user: {
@@ -27,6 +28,7 @@ export function Header({ user }: HeaderProps) {
   const initials = `${user.prenom[0] ?? ''}${user.nom[0] ?? ''}`.toUpperCase()
   const { logout } = useAuth()
   const navigate = useNavigate()
+  const online = useNetwork()
 
   async function handleLogout() {
     await logout()
@@ -35,7 +37,15 @@ export function Header({ user }: HeaderProps) {
 
   return (
     <header className="border-border bg-card flex h-14 shrink-0 items-center justify-between gap-4 border-b px-6">
-      <CommandPalette />
+      <div className="flex items-center gap-3">
+        <CommandPalette />
+        {!online && (
+          <span className="flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700 dark:bg-red-950/50 dark:text-red-400">
+            <WifiOff className="h-3.5 w-3.5" />
+            Hors ligne
+          </span>
+        )}
+      </div>
 
       <DropdownMenu>
         <DropdownMenuTrigger className="hover:bg-accent flex items-center gap-2.5 rounded-lg px-2 py-1.5 focus:outline-none">
