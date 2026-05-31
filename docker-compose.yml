@@ -38,6 +38,7 @@ services:
       EMAIL_SERVER_USER: ${EMAIL_SERVER_USER:-}
       EMAIL_SERVER_PASSWORD: ${EMAIL_SERVER_PASSWORD:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
+      APP_URL: ${APP_URL:-http://localhost:5173}
     volumes:
       - uploads_data:/app/uploads
     expose:
