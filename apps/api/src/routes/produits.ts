@@ -56,14 +56,13 @@ function isHorsSaison(p: {
 }
 
 const createVarianteSchema = z.object({
-  produitId: z.string().min(1),
-  prixHT: z.number().min(0),
-  tauxTVA: z.number().min(0),
-  emballage: z
-    .enum(["VRAC", "BARQUETTE", "FILET", "SAC", "CAISSE", "PLATEAU"])
-    .optional(),
-  poids: z.number().min(0).optional().nullable(),
-  sku: z.string().optional().nullable(),
+  produitId:    z.string().min(1),
+  prixHT:       z.number().min(0),
+  tauxTVAId:    z.string().min(1),
+  emballage:    z.enum(["VRAC", "BARQUETTE", "FILET", "SAC", "CAISSE", "PLATEAU"]).optional(),
+  poids:        z.number().min(0).optional().nullable(),
+  unitePoidsId: z.string().optional().nullable(),
+  sku:          z.string().optional().nullable(),
 });
 
 export const produitsRouter = new Hono<HonoEnv>();
@@ -89,6 +88,8 @@ produitsRouter.get("/", async (c) => {
         where: actif !== undefined ? { actif } : undefined,
         orderBy: { poids: "asc" },
         include: {
+          tauxTVA:    { select: { id: true, libelle: true, taux: true } },
+          unitePoids: { select: { id: true, symbole: true } },
           paliers: {
             orderBy: { qteMin: "asc" },
             select: { id: true, qteMin: true, remisePct: true },
@@ -98,7 +99,14 @@ produitsRouter.get("/", async (c) => {
     },
     orderBy: { nom: "asc" },
   });
-  return c.json(produits.map((p) => ({ ...p, horsJour: isHorsSaison(p) })));
+  return c.json(produits.map((p) => ({
+    ...p,
+    horsJour: isHorsSaison(p),
+    variantes: p.variantes.map((v) => ({
+      ...v,
+      prixTTC: Number(v.prixHT) * (1 + Number(v.tauxTVA.taux) / 100),
+    })),
+  })));
 });
 
 produitsRouter.post("/", requireRole("GERANT", "VENDEUR"), async (c) => {
@@ -139,7 +147,11 @@ produitsRouter.get("/:id", async (c) => {
       categorie: true,
       variantes: {
         orderBy: { poids: "asc" },
-        include: { paliers: { orderBy: { qteMin: "asc" } } },
+        include: {
+          tauxTVA:    { select: { id: true, libelle: true, taux: true } },
+          unitePoids: { select: { id: true, symbole: true } },
+          paliers:    { orderBy: { qteMin: "asc" } },
+        },
       },
     },
   });

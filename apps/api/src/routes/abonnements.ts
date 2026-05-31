@@ -301,11 +301,13 @@ abonnementsRouter.post(
     // Compute total to build paiement if not provided
     const variantes = await prisma.varianteProduit.findMany({
       where: { id: { in: lignes.map((l) => l.varianteProduitId) } },
+      include: { tauxTVA: { select: { taux: true } } },
     });
     const totalTTC = lignes.reduce((sum, l) => {
       const v = variantes.find((x) => x.id === l.varianteProduitId);
       if (!v) return sum;
-      return sum + Number(v.prixTTC) * l.qte;
+      const prixTTC = Number(v.prixHT) * (1 + Number(v.tauxTVA.taux) / 100);
+      return sum + prixTTC * l.qte;
     }, 0);
 
     const modePaiement = parsed.data.modePaiement ?? "VIREMENT";
