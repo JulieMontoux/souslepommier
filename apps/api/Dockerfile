@@ -6,8 +6,9 @@ FROM base AS deps
 WORKDIR /app
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/
+COPY apps/web/package*.json ./apps/web/
 COPY packages/database/package*.json ./packages/database/
-RUN npm ci --workspace=apps/api --workspace=packages/database --include-workspace-root
+RUN npm ci
 
 # Build database package
 FROM base AS db-builder

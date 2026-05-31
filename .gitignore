@@ -85,3 +85,7 @@ apps/web/public/uploads/**
 
 # NestJS compiled output
 apps/api/dist/
+
+.claude/
+
+.npmrc
