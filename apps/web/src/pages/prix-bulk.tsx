@@ -55,7 +55,7 @@ export default function PrixBulkPage() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: (updates: { id: string; prixHT: number }[]) =>
-      api.patch('/variantes/bulk-prix', updates),
+      api.patch('/variantes/bulk-prix', updates) as Promise<{ updated: number }>,
     onSuccess: (data: { updated: number }) => {
       toast.success(`${data.updated} prix mis à jour`)
       void queryClient.invalidateQueries({ queryKey: ['variantes-all'] })

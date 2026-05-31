@@ -13,6 +13,10 @@ export default defineConfig({
       injectRegister: 'auto',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/uploads/],
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             // Cache API catalogue produits

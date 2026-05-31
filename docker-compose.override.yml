@@ -1,0 +1,10 @@
+services:
+  postgres:
+    ports:
+      - '5433:5432'
+  web:
+    ports:
+      - '8080:80'
+  api:
+    environment:
+      SETUP_SECRET: pommier_setup_local

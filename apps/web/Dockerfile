@@ -1,18 +1,19 @@
-FROM node:22-alpine AS deps
+FROM node:22-slim AS deps
 WORKDIR /app
+COPY .npmrc ./
 COPY package*.json ./
 COPY apps/web/package*.json ./apps/web/
 COPY packages/database/package*.json ./packages/database/
 RUN npm ci --workspace=apps/web --workspace=packages/database --include-workspace-root
 
-FROM node:22-alpine AS db-builder
+FROM node:22-slim AS db-builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY packages/database ./packages/database
 COPY package*.json ./
 RUN cd packages/database && npx prisma generate --config prisma.config.ts && npm run build
 
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=db-builder /app/packages/database ./packages/database

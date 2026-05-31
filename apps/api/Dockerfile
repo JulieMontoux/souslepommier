@@ -33,11 +33,14 @@ ENV NODE_ENV=production
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 appuser
 
-COPY --from=api-builder /app/apps/api/dist ./dist
+COPY --from=api-builder /app/apps/api/dist ./apps/api/dist
 COPY --from=api-builder /app/node_modules ./node_modules
+COPY --from=api-builder /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=db-builder /app/packages/database/dist ./packages/database/dist
 COPY --from=db-builder /app/packages/database/src/generated ./packages/database/src/generated
+COPY packages/database/package.json ./packages/database/package.json
 COPY packages/database/prisma ./prisma
+COPY packages/database/prisma.config.ts ./prisma.config.ts
 
 RUN mkdir -p /app/uploads && chown appuser:nodejs /app/uploads
 VOLUME ["/app/uploads"]
@@ -45,5 +48,5 @@ VOLUME ["/app/uploads"]
 USER appuser
 EXPOSE 3001
 
-# Run migrations then start
-CMD ["sh", "-c", "npx prisma migrate deploy --schema ./prisma/schema.prisma && node dist/index.js"]
+# Run migrations then start (prisma.config.ts provides datasource URL from DATABASE_URL env)
+CMD ["sh", "-c", "npx prisma migrate deploy && node apps/api/dist/index.js"]

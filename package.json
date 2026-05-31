@@ -21,9 +21,6 @@
     "turbo": "^2.5.4",
     "typescript": "^5.8.3"
   },
-  "dependencies": {
-    "cmdk": "^1.1.1"
-  },
   "lint-staged": {
     "apps/web/src/**/*.{ts,tsx}": "prettier --write",
     "apps/api/src/**/*.ts": "prettier --write"
