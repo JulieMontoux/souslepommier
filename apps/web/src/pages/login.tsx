@@ -15,6 +15,7 @@ export default function LoginPage() {
   const location = useLocation()
   const from = (location.state as { from?: Location })?.from?.pathname ?? '/dashboard'
 
+  const resetDone = (location.state as { reset?: boolean })?.reset === true
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -73,6 +74,11 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {resetDone && (
+              <Alert className="border-green-200 bg-green-50 text-green-800">
+                <AlertDescription>Mot de passe modifié. Connectez-vous.</AlertDescription>
+              </Alert>
+            )}
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
