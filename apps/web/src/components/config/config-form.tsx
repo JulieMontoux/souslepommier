@@ -191,7 +191,7 @@ export function ConfigForm({ initialConfig }: ConfigFormProps) {
                   type="number"
                   min="0"
                   step="0.01"
-                  {...register('capitalSocial')}
+                  {...register('capitalSocial', { valueAsNumber: true })}
                   placeholder="1000"
                 />
                 {fieldError('capitalSocial')}

@@ -31,7 +31,10 @@ const apeSchema = z
 export const configSchema = z.object({
   raisonSociale: z.string().min(1, 'Raison sociale requise').max(200),
   formeJuridique: z.string().optional(),
-  capitalSocial: z.number().positive('Doit être positif').optional(),
+  capitalSocial: z.preprocess(
+    (v) => (v === '' || (typeof v === 'number' && isNaN(v)) ? undefined : Number(v)),
+    z.number().positive('Doit être positif').optional()
+  ),
   siret: siretSchema,
   tvaIntracommunautaire: tvaIntraSchema,
   adresse: z.string().max(500).optional(),
