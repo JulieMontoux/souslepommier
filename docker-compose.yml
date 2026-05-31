@@ -1,33 +1,52 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
     container_name: souslepommier-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: souslepommier
+      POSTGRES_USER: ${POSTGRES_USER:-pommier}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pommier_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-souslepommier}
     ports:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-pommier} -d ${POSTGRES_DB:-souslepommier}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  app:
+  api:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: souslepommier-app
+      dockerfile: apps/api/Dockerfile
+    container_name: souslepommier-api
     restart: unless-stopped
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://user:password@postgres:5432/souslepommier
-    ports:
-      - '3000:3000'
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pommier}:${POSTGRES_PASSWORD:-pommier_secret}@postgres:5432/${POSTGRES_DB:-souslepommier}
+      JWT_SECRET: ${JWT_SECRET:-changeme_in_production}
+      PORT: 3001
     volumes:
-      - ./uploads:/app/uploads
+      - uploads_data:/app/uploads
+    expose:
+      - '3001'
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: souslepommier-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '${APP_PORT:-80}:80'
 
 volumes:
   postgres_data:
+  uploads_data:

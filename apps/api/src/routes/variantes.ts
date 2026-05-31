@@ -45,7 +45,7 @@ variantesRouter.get("/", async (c) => {
   return c.json(variantes);
 });
 
-variantesRouter.post("/", requireRole("GERANT"), async (c) => {
+variantesRouter.post("/", requireRole("GERANT", "VENDEUR"), async (c) => {
   const body = await c.req.json().catch(() => null);
   const parsed = createVarianteSchema.safeParse(body);
   if (!parsed.success)
@@ -89,7 +89,7 @@ variantesRouter.get("/:id", async (c) => {
   return c.json(variante);
 });
 
-variantesRouter.put("/:id", requireRole("GERANT"), async (c) => {
+variantesRouter.put("/:id", requireRole("GERANT", "VENDEUR"), async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => null);
   const parsed = updateVarianteSchema.safeParse(body);

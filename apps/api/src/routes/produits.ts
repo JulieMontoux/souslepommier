@@ -101,7 +101,7 @@ produitsRouter.get("/", async (c) => {
   return c.json(produits.map((p) => ({ ...p, horsJour: isHorsSaison(p) })));
 });
 
-produitsRouter.post("/", requireRole("GERANT"), async (c) => {
+produitsRouter.post("/", requireRole("GERANT", "VENDEUR"), async (c) => {
   const body = await c.req.json().catch(() => null);
   const parsed = produitSchema.safeParse(body);
   if (!parsed.success)
@@ -147,7 +147,7 @@ produitsRouter.get("/:id", async (c) => {
   return c.json({ ...produit, horsJour: isHorsSaison(produit) });
 });
 
-produitsRouter.put("/:id", requireRole("GERANT"), async (c) => {
+produitsRouter.put("/:id", requireRole("GERANT", "VENDEUR"), async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => null);
   const parsed = produitSchema.safeParse(body);
@@ -226,58 +226,62 @@ produitsRouter.get("/:id/variantes", async (c) => {
   return c.json(variantes);
 });
 
-produitsRouter.post("/:id/image", requireRole("GERANT"), async (c) => {
-  const id = c.req.param("id");
-  const existing = await prisma.produit.findUnique({ where: { id } });
-  if (!existing) return c.json({ error: "Produit introuvable" }, 404);
+produitsRouter.post(
+  "/:id/image",
+  requireRole("GERANT", "VENDEUR"),
+  async (c) => {
+    const id = c.req.param("id");
+    const existing = await prisma.produit.findUnique({ where: { id } });
+    if (!existing) return c.json({ error: "Produit introuvable" }, 404);
 
-  const body = await c.req.parseBody();
-  const file = body["file"];
-  if (!(file instanceof File))
-    return c.json({ error: "Fichier manquant (champ 'file')" }, 422);
+    const body = await c.req.parseBody();
+    const file = body["file"];
+    if (!(file instanceof File))
+      return c.json({ error: "Fichier manquant (champ 'file')" }, 422);
 
-  if (!ALLOWED_TYPES.has(file.type))
-    return c.json(
-      { error: "Format non supporté. JPEG, PNG ou WebP requis." },
-      422,
-    );
-  if (file.size > MAX_SIZE)
-    return c.json({ error: "Fichier trop volumineux (max 2 Mo)" }, 422);
+    if (!ALLOWED_TYPES.has(file.type))
+      return c.json(
+        { error: "Format non supporté. JPEG, PNG ou WebP requis." },
+        422,
+      );
+    if (file.size > MAX_SIZE)
+      return c.json({ error: "Fichier trop volumineux (max 2 Mo)" }, 422);
 
-  mkdirSync(UPLOADS_DIR, { recursive: true });
-  const ext =
-    extname(file.name) ||
-    (file.type === "image/webp"
-      ? ".webp"
-      : file.type === "image/png"
-        ? ".png"
-        : ".jpg");
-  const filename = `${randomBytes(12).toString("hex")}${ext}`;
-  const filepath = join(UPLOADS_DIR, filename);
+    mkdirSync(UPLOADS_DIR, { recursive: true });
+    const ext =
+      extname(file.name) ||
+      (file.type === "image/webp"
+        ? ".webp"
+        : file.type === "image/png"
+          ? ".png"
+          : ".jpg");
+    const filename = `${randomBytes(12).toString("hex")}${ext}`;
+    const filepath = join(UPLOADS_DIR, filename);
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  writeFileSync(filepath, buffer);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    writeFileSync(filepath, buffer);
 
-  // Delete old image file if local upload
-  if (existing.image?.startsWith("/uploads/")) {
-    const oldPath = join(process.cwd(), existing.image.slice(1));
-    if (existsSync(oldPath)) {
-      try {
-        unlinkSync(oldPath);
-      } catch {
-        /* ignore */
+    // Delete old image file if local upload
+    if (existing.image?.startsWith("/uploads/")) {
+      const oldPath = join(process.cwd(), existing.image.slice(1));
+      if (existsSync(oldPath)) {
+        try {
+          unlinkSync(oldPath);
+        } catch {
+          /* ignore */
+        }
       }
     }
-  }
 
-  const imageUrl = `/uploads/${filename}`;
-  const produit = await prisma.produit.update({
-    where: { id },
-    data: { image: imageUrl },
-  });
+    const imageUrl = `/uploads/${filename}`;
+    const produit = await prisma.produit.update({
+      where: { id },
+      data: { image: imageUrl },
+    });
 
-  return c.json({ image: produit.image });
-});
+    return c.json({ image: produit.image });
+  },
+);
 
 produitsRouter.delete("/:id/image", requireRole("GERANT"), async (c) => {
   const id = c.req.param("id");

@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/auth'
 import { toast } from 'sonner'
-import { LogOut, Leaf } from 'lucide-react'
+import { LogOut, Leaf, Package } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { recapTVA, roundFiscal, calcMontantTVA } from '@/lib/tva'
 import { enqueueVente, syncOfflineVentes } from '@/lib/offline-queue'
@@ -401,6 +402,13 @@ export function POSInterface({
           )}
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            to="/dashboard/produits"
+            className="text-sidebar-foreground/60 hover:text-sidebar-foreground flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors"
+          >
+            <Package className="h-4 w-4" />
+            Produits
+          </Link>
           <span className="text-sidebar-foreground/70 text-sm">
             {user.prenom} {user.nom}
           </span>
