@@ -104,11 +104,13 @@ export function ConfigForm({ initialConfig }: ConfigFormProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: testEmail }),
       })
-      const data = await res.json()
-      if (!res.ok) toast.error(data.error ?? 'Échec du test SMTP')
+      const text = await res.text()
+      let data: { error?: string } = {}
+      try { data = JSON.parse(text) } catch { /* non-JSON */ }
+      if (!res.ok) toast.error(data.error ?? `Erreur ${res.status} : ${text.slice(0, 200)}`)
       else toast.success('Email de test envoyé !')
-    } catch {
-      toast.error('Erreur réseau')
+    } catch (err) {
+      toast.error(`Erreur réseau : ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setTestingSMTP(false)
     }
