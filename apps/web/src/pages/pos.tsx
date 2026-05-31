@@ -29,7 +29,9 @@ export default function PosPage() {
         id: p.id as string,
         nom: p.nom as string,
         description: (p.description as string | null) ?? null,
+        image: (p.image as string | null) ?? null,
         categorieNom: (p.categorie as { nom: string } | null)?.nom ?? null,
+        horsJour: Boolean(p.horsJour),
         variantes: ((p.variantes as Record<string, unknown>[]) ?? [])
           .filter((v) => v.actif)
           .map((v) => ({
@@ -39,6 +41,10 @@ export default function PosPage() {
             prixHT: Number(v.prixHT),
             tauxTVA: Number(v.tauxTVA),
             prixTTC: Number(v.prixTTC),
+            sku: (v.sku as string | null) ?? null,
+            venteAuPoids: Boolean(v.venteAuPoids),
+            stockActuel: Number(v.stockActuel ?? 0),
+            stockMin: v.stockMin != null ? Number(v.stockMin) : null,
           })),
       }))
     },

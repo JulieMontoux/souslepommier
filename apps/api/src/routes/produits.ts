@@ -1,5 +1,8 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { writeFileSync, mkdirSync, unlinkSync, existsSync } from "node:fs";
+import { join, extname } from "node:path";
+import { randomBytes } from "node:crypto";
 import { prisma } from "../lib/prisma.js";
 import {
   authMiddleware,
@@ -9,13 +12,48 @@ import {
 import { logAudit } from "../lib/audit.js";
 import { calcPrixTTC } from "../lib/tva.js";
 
+const UPLOADS_DIR = join(process.cwd(), "uploads");
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const MAX_SIZE = 2 * 1024 * 1024;
+
 const produitSchema = z.object({
   nom: z.string().min(1).max(100),
   categorieId: z.string().optional().nullable(),
   description: z.string().max(500).optional().nullable(),
   image: z.string().url().optional().nullable(),
   actif: z.boolean().default(true),
+  saisonDebutMois: z.number().int().min(1).max(12).optional().nullable(),
+  saisonDebutJour: z.number().int().min(1).max(31).optional().nullable(),
+  saisonFinMois: z.number().int().min(1).max(12).optional().nullable(),
+  saisonFinJour: z.number().int().min(1).max(31).optional().nullable(),
 });
+
+function isHorsSaison(p: {
+  saisonDebutMois: number | null;
+  saisonDebutJour: number | null;
+  saisonFinMois: number | null;
+  saisonFinJour: number | null;
+}): boolean {
+  if (
+    !p.saisonDebutMois ||
+    !p.saisonDebutJour ||
+    !p.saisonFinMois ||
+    !p.saisonFinJour
+  )
+    return false;
+  const now = new Date();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  // encode as MMDD for comparison
+  const cur = m * 100 + d;
+  const start = p.saisonDebutMois * 100 + p.saisonDebutJour;
+  const end = p.saisonFinMois * 100 + p.saisonFinJour;
+  const inRange =
+    start <= end
+      ? cur >= start && cur <= end // same-year range e.g. Jun→Aug
+      : cur >= start || cur <= end; // cross-year range e.g. Sep→Mar
+  return !inRange;
+}
 
 const createVarianteSchema = z.object({
   produitId: z.string().min(1),
@@ -54,7 +92,7 @@ produitsRouter.get("/", async (c) => {
     },
     orderBy: { nom: "asc" },
   });
-  return c.json(produits);
+  return c.json(produits.map((p) => ({ ...p, horsJour: isHorsSaison(p) })));
 });
 
 produitsRouter.post("/", requireRole("GERANT"), async (c) => {
@@ -94,7 +132,7 @@ produitsRouter.get("/:id", async (c) => {
     include: { categorie: true, variantes: { orderBy: { poids: "asc" } } },
   });
   if (!produit) return c.json({ error: "Produit introuvable" }, 404);
-  return c.json(produit);
+  return c.json({ ...produit, horsJour: isHorsSaison(produit) });
 });
 
 produitsRouter.put("/:id", requireRole("GERANT"), async (c) => {
@@ -118,6 +156,10 @@ produitsRouter.put("/:id", requireRole("GERANT"), async (c) => {
       description: parsed.data.description ?? null,
       image: parsed.data.image ?? null,
       actif: parsed.data.actif,
+      saisonDebutMois: parsed.data.saisonDebutMois ?? null,
+      saisonDebutJour: parsed.data.saisonDebutJour ?? null,
+      saisonFinMois: parsed.data.saisonFinMois ?? null,
+      saisonFinJour: parsed.data.saisonFinJour ?? null,
     },
     include: { categorie: true, variantes: true },
   });
@@ -170,4 +212,77 @@ produitsRouter.get("/:id/variantes", async (c) => {
     orderBy: { poids: "asc" },
   });
   return c.json(variantes);
+});
+
+produitsRouter.post("/:id/image", requireRole("GERANT"), async (c) => {
+  const id = c.req.param("id");
+  const existing = await prisma.produit.findUnique({ where: { id } });
+  if (!existing) return c.json({ error: "Produit introuvable" }, 404);
+
+  const body = await c.req.parseBody();
+  const file = body["file"];
+  if (!(file instanceof File))
+    return c.json({ error: "Fichier manquant (champ 'file')" }, 422);
+
+  if (!ALLOWED_TYPES.has(file.type))
+    return c.json(
+      { error: "Format non supporté. JPEG, PNG ou WebP requis." },
+      422,
+    );
+  if (file.size > MAX_SIZE)
+    return c.json({ error: "Fichier trop volumineux (max 2 Mo)" }, 422);
+
+  mkdirSync(UPLOADS_DIR, { recursive: true });
+  const ext =
+    extname(file.name) ||
+    (file.type === "image/webp"
+      ? ".webp"
+      : file.type === "image/png"
+        ? ".png"
+        : ".jpg");
+  const filename = `${randomBytes(12).toString("hex")}${ext}`;
+  const filepath = join(UPLOADS_DIR, filename);
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  writeFileSync(filepath, buffer);
+
+  // Delete old image file if local upload
+  if (existing.image?.startsWith("/uploads/")) {
+    const oldPath = join(process.cwd(), existing.image.slice(1));
+    if (existsSync(oldPath)) {
+      try {
+        unlinkSync(oldPath);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  const imageUrl = `/uploads/${filename}`;
+  const produit = await prisma.produit.update({
+    where: { id },
+    data: { image: imageUrl },
+  });
+
+  return c.json({ image: produit.image });
+});
+
+produitsRouter.delete("/:id/image", requireRole("GERANT"), async (c) => {
+  const id = c.req.param("id");
+  const existing = await prisma.produit.findUnique({ where: { id } });
+  if (!existing) return c.json({ error: "Produit introuvable" }, 404);
+
+  if (existing.image?.startsWith("/uploads/")) {
+    const oldPath = join(process.cwd(), existing.image.slice(1));
+    if (existsSync(oldPath)) {
+      try {
+        unlinkSync(oldPath);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  await prisma.produit.update({ where: { id }, data: { image: null } });
+  return c.json({ success: true });
 });

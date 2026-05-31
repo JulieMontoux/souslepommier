@@ -57,26 +57,42 @@ export function CartItem({ ligne, onUpdateQte, onUpdateRemise, onRemoveLine }: C
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            onClick={() => onUpdateQte(ligne.key, ligne.qte - 1)}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-zinc-200 text-zinc-500 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
-          >
-            <Minus className="h-3 w-3" />
-          </button>
-          <Input
-            type="number"
-            value={ligne.qte}
-            min="0.001"
-            step="0.001"
-            onChange={(e) => onUpdateQte(ligne.key, parseFloat(e.target.value))}
-            className="w-14 border-zinc-200 px-1 py-0.5 text-center text-sm dark:border-zinc-700 dark:bg-zinc-800"
-          />
-          <button
-            onClick={() => onUpdateQte(ligne.key, ligne.qte + 1)}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-zinc-200 text-zinc-500 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
-          >
-            <Plus className="h-3 w-3" />
-          </button>
+          {ligne.venteAuPoids ? (
+            <>
+              <Input
+                type="number"
+                value={ligne.qte}
+                min="0.001"
+                step="0.001"
+                onChange={(e) => onUpdateQte(ligne.key, parseFloat(e.target.value))}
+                className="w-16 border-zinc-200 px-1 py-0.5 text-center text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              />
+              <span className="text-xs text-zinc-400">kg</span>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => onUpdateQte(ligne.key, ligne.qte - 1)}
+                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-zinc-200 text-zinc-500 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              >
+                <Minus className="h-3 w-3" />
+              </button>
+              <Input
+                type="number"
+                value={ligne.qte}
+                min="0.001"
+                step="0.001"
+                onChange={(e) => onUpdateQte(ligne.key, parseFloat(e.target.value))}
+                className="w-14 border-zinc-200 px-1 py-0.5 text-center text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              />
+              <button
+                onClick={() => onUpdateQte(ligne.key, ligne.qte + 1)}
+                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-zinc-200 text-zinc-500 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              >
+                <Plus className="h-3 w-3" />
+              </button>
+            </>
+          )}
           <button
             onClick={() => setShowRemise((s) => !s)}
             className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded transition-colors ${

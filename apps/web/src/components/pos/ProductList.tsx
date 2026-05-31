@@ -5,7 +5,46 @@ import { Search, Package } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import type { ProduitPOS } from '@/types/pos'
+import type { ProduitPOS, ProduitPOSVariante } from '@/types/pos'
+
+type StockStatus = 'ok' | 'low' | 'out' | 'none'
+
+function getStockStatus(variantes: ProduitPOSVariante[]): StockStatus {
+  if (variantes.length === 0) return 'none'
+  const totalStock = variantes.reduce((s, v) => s + v.stockActuel, 0)
+  const hasMin = variantes.some((v) => v.stockMin !== null)
+  if (!hasMin && totalStock === 0) return 'none'
+  if (totalStock <= 0) return 'out'
+  if (hasMin && variantes.some((v) => v.stockMin !== null && v.stockActuel <= v.stockMin))
+    return 'low'
+  return 'ok'
+}
+
+function StockBadge({ variantes }: { variantes: ProduitPOSVariante[] }) {
+  const status = getStockStatus(variantes)
+  if (status === 'none') return null
+  const isKg = variantes.some((v) => v.venteAuPoids)
+  const totalStock = variantes.reduce((s, v) => s + v.stockActuel, 0)
+  const label = isKg ? `${totalStock.toFixed(3).replace('.', ',')} kg` : `${totalStock} pcs`
+
+  if (status === 'out')
+    return (
+      <span className="absolute top-1.5 right-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] leading-none font-bold text-white">
+        Épuisé
+      </span>
+    )
+  if (status === 'low')
+    return (
+      <span className="absolute top-1.5 right-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] leading-none font-bold text-white">
+        {label}
+      </span>
+    )
+  return (
+    <span className="absolute top-1.5 right-1.5 rounded-full bg-green-500 px-1.5 py-0.5 text-[10px] leading-none font-medium text-white">
+      {label}
+    </span>
+  )
+}
 
 interface ProductListProps {
   produits: ProduitPOS[]
@@ -27,6 +66,10 @@ export function ProductList({ produits, onProductSelect }: ProductListProps) {
   })
 
   function handleProductClick(produit: ProduitPOS) {
+    if (produit.horsJour) {
+      toast.error('Produit hors saison')
+      return
+    }
     if (produit.variantes.length === 0) {
       toast.error('Aucune variante disponible')
       return
@@ -94,10 +137,29 @@ export function ProductList({ produits, onProductSelect }: ProductListProps) {
                 <button
                   key={produit.id}
                   onClick={() => handleProductClick(produit)}
-                  className="group flex cursor-pointer flex-col items-center gap-2.5 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition-all duration-150 hover:border-green-400 hover:shadow-md active:scale-95 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-green-500 dark:hover:bg-zinc-800"
+                  className={`group relative flex cursor-pointer flex-col items-center gap-2.5 rounded-xl border p-4 shadow-sm transition-all duration-150 ${
+                    produit.horsJour
+                      ? 'cursor-not-allowed border-zinc-200 bg-zinc-50 opacity-50 dark:border-zinc-700 dark:bg-zinc-900/50'
+                      : 'border-zinc-200 bg-white hover:border-green-400 hover:shadow-md active:scale-95 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-green-500 dark:hover:bg-zinc-800'
+                  }`}
                 >
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 transition-colors group-hover:bg-green-200 dark:bg-green-950/60 dark:group-hover:bg-green-900/60">
-                    <Package className="h-7 w-7 text-green-600 dark:text-green-400" />
+                  {produit.horsJour ? (
+                    <span className="absolute top-1.5 right-1.5 rounded-full bg-zinc-500 px-1.5 py-0.5 text-[10px] leading-none font-bold text-white">
+                      Hors saison
+                    </span>
+                  ) : (
+                    <StockBadge variantes={produit.variantes} />
+                  )}
+                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-green-100 transition-colors group-hover:bg-green-200 dark:bg-green-950/60 dark:group-hover:bg-green-900/60">
+                    {produit.image ? (
+                      <img
+                        src={produit.image}
+                        alt={produit.nom}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Package className="h-7 w-7 text-green-600 dark:text-green-400" />
+                    )}
                   </div>
                   <p className="text-center text-sm leading-tight font-medium text-zinc-800 dark:text-zinc-100">
                     {produit.nom}

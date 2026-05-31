@@ -55,6 +55,12 @@ export const configSchema = z.object({
   regimeTVA: z.enum(['NORMAL', 'SIMPLIFIE', 'FRANCHISE']).default('NORMAL'),
   responsableRGPD: z.string().max(200).optional(),
   emailRGPD: z.string().email('Email RGPD invalide').optional().or(z.literal('')),
+  smtpHost: z.string().optional(),
+  smtpPort: z.coerce.number().int().min(1).max(65535).optional().or(z.literal('')),
+  smtpUser: z.string().optional(),
+  smtpPass: z.string().optional(),
+  smtpFrom: z.string().optional(),
+  smtpTls: z.boolean().default(true),
 })
 
 export type ConfigFormValues = z.infer<typeof configSchema>

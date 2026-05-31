@@ -7,6 +7,7 @@ import {
   type HonoEnv,
 } from "../lib/middleware.js";
 import { logAudit } from "../lib/audit.js";
+import { sendTestEmail } from "../lib/email.js";
 
 const CONFIG_ID = "default";
 
@@ -29,6 +30,12 @@ const configSchema = z.object({
   regimeTVA: z.string().default("NORMAL"),
   responsableRGPD: z.string().optional().nullable(),
   emailRGPD: z.string().email().optional().nullable(),
+  smtpHost: z.string().optional().nullable(),
+  smtpPort: z.number().int().min(1).max(65535).optional().nullable(),
+  smtpUser: z.string().optional().nullable(),
+  smtpPass: z.string().optional().nullable(),
+  smtpFrom: z.string().optional().nullable(),
+  smtpTls: z.boolean().default(true),
 });
 
 export const configRouter = new Hono<HonoEnv>();
@@ -39,7 +46,10 @@ configRouter.get("/", async (c) => {
   const config = await prisma.configEntreprise.findUnique({
     where: { id: CONFIG_ID },
   });
-  return c.json(config ?? {});
+  if (!config) return c.json({});
+  // Never expose SMTP password — replace with boolean flag
+  const { smtpPass, ...rest } = config;
+  return c.json({ ...rest, smtpPassSet: !!smtpPass });
 });
 
 configRouter.put("/", requireRole("GERANT"), async (c) => {
@@ -74,6 +84,13 @@ configRouter.put("/", requireRole("GERANT"), async (c) => {
       codeAPE: data.codeAPE || null,
       responsableRGPD: data.responsableRGPD || null,
       emailRGPD: data.emailRGPD || null,
+      smtpHost: data.smtpHost || null,
+      smtpPort: data.smtpPort ?? null,
+      smtpUser: data.smtpUser || null,
+      // Only update password if a new value was provided
+      ...(data.smtpPass ? { smtpPass: data.smtpPass } : {}),
+      smtpFrom: data.smtpFrom || null,
+      smtpTls: data.smtpTls,
     },
     create: {
       id: CONFIG_ID,
@@ -93,6 +110,12 @@ configRouter.put("/", requireRole("GERANT"), async (c) => {
       codeAPE: data.codeAPE || null,
       responsableRGPD: data.responsableRGPD || null,
       emailRGPD: data.emailRGPD || null,
+      smtpHost: data.smtpHost || null,
+      smtpPort: data.smtpPort ?? null,
+      smtpUser: data.smtpUser || null,
+      smtpPass: data.smtpPass || null,
+      smtpFrom: data.smtpFrom || null,
+      smtpTls: data.smtpTls,
     },
   });
 
@@ -104,5 +127,20 @@ configRouter.put("/", requireRole("GERANT"), async (c) => {
     ancienneValeur: existing as Record<string, unknown>,
     nouvelleValeur: config as Record<string, unknown>,
   });
-  return c.json(config);
+  const { smtpPass: _pass, ...configSafe } = config;
+  return c.json({ ...configSafe, smtpPassSet: !!_pass });
+});
+
+configRouter.post("/smtp-test", requireRole("GERANT"), async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const email = body?.email as string | undefined;
+  if (!email) return c.json({ error: "Email destinataire requis" }, 422);
+
+  try {
+    await sendTestEmail(email);
+    return c.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Erreur inconnue";
+    return c.json({ error: `Échec envoi : ${message}` }, 500);
+  }
 });

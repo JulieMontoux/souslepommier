@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { compress } from "hono/compress";
 import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
 import { authRouter } from "./routes/auth.js";
 import { produitsRouter } from "./routes/produits.js";
 import { variantesRouter } from "./routes/variantes.js";
@@ -17,6 +18,7 @@ import { statsRouter } from "./routes/stats.js";
 import { auditRouter } from "./routes/audit.js";
 import { tauxTvaRouter } from "./routes/taux-tva.js";
 import { rgpdRouter } from "./routes/rgpd.js";
+import { stockRouter } from "./routes/stock.js";
 
 const app = new Hono();
 
@@ -48,8 +50,11 @@ app.route("/api/stats", statsRouter);
 app.route("/api/audit", auditRouter);
 app.route("/api/taux-tva", tauxTvaRouter);
 app.route("/api/rgpd", rgpdRouter);
+app.route("/api/stock", stockRouter);
 
 app.get("/health", (c) => c.json({ ok: true }));
+
+app.use("/uploads/*", serveStatic({ root: "./" }));
 
 const port = parseInt(process.env.PORT ?? "3001");
 

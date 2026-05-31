@@ -35,12 +35,26 @@ export function VariantePicker({ produit, onSelect, onClose }: VariantePickerPro
               onClick={() => onSelect(v)}
             >
               <span className="text-zinc-700">
-                {v.poids ? `${v.poids} kg · ` : ''}
+                {!v.venteAuPoids && v.poids ? `${v.poids} kg · ` : ''}
                 {EMBALLAGE_LABELS[v.emballage] ?? v.emballage}
+                {v.venteAuPoids && (
+                  <span className="ml-1 rounded bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">
+                    pesée
+                  </span>
+                )}
               </span>
-              <span className="font-bold text-green-700">
-                {v.prixTTC.toFixed(2).replace('.', ',')} €
-              </span>
+              <div className="flex flex-col items-end gap-0.5">
+                <span className="font-bold text-green-700">
+                  {v.prixTTC.toFixed(2).replace('.', ',')} €{v.venteAuPoids ? '/kg' : ''}
+                </span>
+                {v.stockActuel <= 0 ? (
+                  <span className="text-[10px] font-medium text-red-500">Épuisé</span>
+                ) : v.stockMin !== null && v.stockActuel <= v.stockMin ? (
+                  <span className="text-[10px] font-medium text-amber-500">
+                    {v.venteAuPoids ? `${v.stockActuel.toFixed(3)} kg` : `${v.stockActuel} pcs`}
+                  </span>
+                ) : null}
+              </div>
             </Button>
           ))}
         </div>

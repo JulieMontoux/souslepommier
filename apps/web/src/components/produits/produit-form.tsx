@@ -2,7 +2,13 @@
 
 import { useState, useTransition } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useForm, useFieldArray, type Resolver } from 'react-hook-form'
+import {
+  useForm,
+  useFieldArray,
+  type Resolver,
+  type UseFormSetValue,
+  type UseFormWatch,
+} from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -32,7 +38,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DeactivateDialog } from './deactivate-dialog'
-import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react'
+import { LabelPrintModal } from './label-print-modal'
+import { ArrowLeft, Plus, Trash2, Save, ImagePlus, X, Tag } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 // ─── Schéma formulaire ────────────────────────────────────────────────────────
@@ -44,6 +51,7 @@ const varianteRowSchema = z.object({
   prixHT: z.string().min(1, 'Requis'),
   tauxTVA: z.string().min(1, 'Requis'),
   sku: z.string().optional(),
+  venteAuPoids: z.boolean().default(false),
   actif: z.boolean().default(true),
 })
 
@@ -52,6 +60,10 @@ const formSchema = z.object({
   categorieId: z.string().optional(),
   description: z.string().max(500).optional(),
   actif: z.boolean().default(true),
+  saisonDebutMois: z.number().int().min(1).max(12).nullable().optional(),
+  saisonDebutJour: z.number().int().min(1).max(31).nullable().optional(),
+  saisonFinMois: z.number().int().min(1).max(12).nullable().optional(),
+  saisonFinJour: z.number().int().min(1).max(31).nullable().optional(),
   variantes: z.array(varianteRowSchema),
 })
 
@@ -74,10 +86,175 @@ const EMBALLAGE_LABELS: Record<string, string> = {
   PLATEAU: 'Plateau',
 }
 
+const MOIS = [
+  'Janvier',
+  'Février',
+  'Mars',
+  'Avril',
+  'Mai',
+  'Juin',
+  'Juillet',
+  'Août',
+  'Septembre',
+  'Octobre',
+  'Novembre',
+  'Décembre',
+]
+
+function SaisonSection({
+  watch,
+  setValue,
+}: {
+  watch: UseFormWatch<FormValues>
+  setValue: UseFormSetValue<FormValues>
+}) {
+  const debutMois = watch('saisonDebutMois') ?? null
+  const debutJour = watch('saisonDebutJour') ?? null
+  const finMois = watch('saisonFinMois') ?? null
+  const finJour = watch('saisonFinJour') ?? null
+
+  function clearSaison() {
+    setValue('saisonDebutMois', null)
+    setValue('saisonDebutJour', null)
+    setValue('saisonFinMois', null)
+    setValue('saisonFinJour', null)
+  }
+
+  function enableSaison() {
+    setValue('saisonDebutMois', 1)
+    setValue('saisonDebutJour', 1)
+    setValue('saisonFinMois', 12)
+    setValue('saisonFinJour', 31)
+  }
+
+  const hasSaison = debutMois !== null && debutMois !== undefined
+
+  return (
+    <div className="space-y-3 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-zinc-800">Disponibilité saisonnière</h2>
+        {hasSaison ? (
+          <button
+            type="button"
+            onClick={clearSaison}
+            className="text-xs text-red-500 hover:text-red-600"
+          >
+            Supprimer la saisonnalité
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={enableSaison}
+            className="text-xs font-medium text-green-600 hover:text-green-700"
+          >
+            + Définir une saison
+          </button>
+        )}
+      </div>
+
+      {hasSaison ? (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs tracking-wide text-zinc-500 uppercase">Début de saison</Label>
+            <div className="flex gap-2">
+              <Select
+                value={debutJour != null ? String(debutJour) : ''}
+                onValueChange={(v) => setValue('saisonDebutJour', v ? parseInt(v) : null)}
+              >
+                <SelectTrigger className="w-20">
+                  <SelectValue placeholder="Jour" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                    <SelectItem key={d} value={String(d)}>
+                      {d}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={debutMois != null ? String(debutMois) : ''}
+                onValueChange={(v) => setValue('saisonDebutMois', v ? parseInt(v) : null)}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Mois" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MOIS.map((m, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs tracking-wide text-zinc-500 uppercase">Fin de saison</Label>
+            <div className="flex gap-2">
+              <Select
+                value={finJour != null ? String(finJour) : ''}
+                onValueChange={(v) => setValue('saisonFinJour', v ? parseInt(v) : null)}
+              >
+                <SelectTrigger className="w-20">
+                  <SelectValue placeholder="Jour" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                    <SelectItem key={d} value={String(d)}>
+                      {d}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={finMois != null ? String(finMois) : ''}
+                onValueChange={(v) => setValue('saisonFinMois', v ? parseInt(v) : null)}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Mois" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MOIS.map((m, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {debutMois && debutJour && finMois && finJour && (
+            <p className="col-span-2 text-xs text-zinc-400">
+              Disponible du{' '}
+              <strong>
+                {debutJour} {MOIS[debutMois - 1]}
+              </strong>{' '}
+              au{' '}
+              <strong>
+                {finJour} {MOIS[finMois - 1]}
+              </strong>
+              {debutMois > finMois || (debutMois === finMois && debutJour > finJour)
+                ? " (chevauchement d'année)"
+                : ''}
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="text-sm text-zinc-400">Aucune restriction — disponible toute l&apos;année.</p>
+      )}
+    </div>
+  )
+}
+
 export function ProduitForm({ produit, categories }: ProduitFormProps) {
   const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [saving, setSaving] = useState(false)
+  const [showLabels, setShowLabels] = useState(false)
+  const [imageUrl, setImageUrl] = useState<string | null>(produit?.image ?? null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [varianteDeactivate, setVarianteDeactivate] = useState<{
     index: number
     id?: string
@@ -100,6 +277,10 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
       categorieId: produit?.categorieId ?? undefined,
       description: produit?.description ?? '',
       actif: produit?.actif ?? true,
+      saisonDebutMois: produit?.saisonDebutMois ?? null,
+      saisonDebutJour: produit?.saisonDebutJour ?? null,
+      saisonFinMois: produit?.saisonFinMois ?? null,
+      saisonFinJour: produit?.saisonFinJour ?? null,
       variantes:
         produit?.variantes.map((v) => ({
           id: v.id,
@@ -108,6 +289,7 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
           prixHT: String(v.prixHT),
           tauxTVA: String(v.tauxTVA),
           sku: v.sku ?? '',
+          venteAuPoids: (v as typeof v & { venteAuPoids?: boolean }).venteAuPoids ?? false,
           actif: v.actif,
         })) ?? [],
     },
@@ -127,7 +309,15 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
   }
 
   function addVariante() {
-    append({ poids: '', emballage: 'VRAC', prixHT: '', tauxTVA: '5.5', sku: '', actif: true })
+    append({
+      poids: '',
+      emballage: 'VRAC',
+      prixHT: '',
+      tauxTVA: '5.5',
+      sku: '',
+      venteAuPoids: false,
+      actif: true,
+    })
   }
 
   function handleVarianteToggle(index: number, checked: boolean) {
@@ -141,6 +331,52 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
     if (field.id && produit) {
       void patchVarianteStatut(field.id, true)
     }
+  }
+
+  async function uploadImageForProduit(id: string, file: File) {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch(`/api/produits/${id}/image`, { method: 'POST', body: fd })
+    if (!res.ok) {
+      toast.error('Erreur upload image')
+      return null
+    }
+    const data = await res.json()
+    return data.image as string
+  }
+
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('Format non supporté. JPEG, PNG ou WebP requis.')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Fichier trop volumineux (max 2 Mo)')
+      return
+    }
+    setImageFile(file)
+    setImageUrl(URL.createObjectURL(file))
+    // If editing, upload immediately
+    if (produit?.id) {
+      setUploadingImage(true)
+      const url = await uploadImageForProduit(produit.id, file)
+      setUploadingImage(false)
+      if (url) {
+        setImageUrl(url)
+        setImageFile(null)
+        toast.success('Image mise à jour')
+      }
+    }
+  }
+
+  async function handleDeleteImage() {
+    if (produit?.id) {
+      await fetch(`/api/produits/${produit.id}/image`, { method: 'DELETE' })
+    }
+    setImageUrl(null)
+    setImageFile(null)
   }
 
   async function patchVarianteStatut(varianteId: string, actif: boolean) {
@@ -161,6 +397,10 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
         description: data.description || null,
         image: null,
         actif: data.actif,
+        saisonDebutMois: data.saisonDebutMois ?? null,
+        saisonDebutJour: data.saisonDebutJour ?? null,
+        saisonFinMois: data.saisonFinMois ?? null,
+        saisonFinJour: data.saisonFinJour ?? null,
       }
 
       let produitId = produit?.id
@@ -186,6 +426,10 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
         }
         const created = await res.json()
         produitId = created.id
+        // Upload image for new product
+        if (imageFile && produitId) {
+          await uploadImageForProduit(produitId, imageFile)
+        }
       }
 
       // 2. Sauvegarder les variantes
@@ -197,6 +441,7 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
           prixHT: parseFloat(variante.prixHT),
           tauxTVA: parseFloat(variante.tauxTVA),
           sku: variante.sku || null,
+          venteAuPoids: variante.venteAuPoids ?? false,
           actif: variante.actif,
         }
 
@@ -250,10 +495,23 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
             </p>
           </div>
         </div>
-        <Button type="submit" disabled={saving || isPending} className="gap-2">
-          <Save className="h-4 w-4" />
-          {saving ? 'Sauvegarde…' : 'Sauvegarder'}
-        </Button>
+        <div className="flex gap-2">
+          {isEditing && produit && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowLabels(true)}
+              className="gap-2"
+            >
+              <Tag className="h-4 w-4" />
+              Étiquettes
+            </Button>
+          )}
+          <Button type="submit" disabled={saving || isPending} className="gap-2">
+            <Save className="h-4 w-4" />
+            {saving ? 'Sauvegarde…' : 'Sauvegarder'}
+          </Button>
+        </div>
       </div>
 
       {/* Informations produit */}
@@ -316,6 +574,49 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
         </div>
       </div>
 
+      {/* Photo produit */}
+      <div className="space-y-3 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+        <h2 className="font-semibold text-zinc-800">Photo</h2>
+        <div className="flex items-center gap-4">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+            {imageUrl ? (
+              <img src={imageUrl} alt="Aperçu" className="h-full w-full object-cover" />
+            ) : (
+              <ImagePlus className="h-8 w-8 text-zinc-300" />
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                onChange={handleImageChange}
+                disabled={uploadingImage}
+              />
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm hover:border-zinc-300 hover:bg-zinc-50">
+                <ImagePlus className="h-4 w-4" />
+                {uploadingImage ? 'Envoi…' : imageUrl ? 'Changer' : 'Ajouter une photo'}
+              </span>
+            </label>
+            {imageUrl && (
+              <button
+                type="button"
+                onClick={handleDeleteImage}
+                className="inline-flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600"
+              >
+                <X className="h-3 w-3" />
+                Supprimer
+              </button>
+            )}
+            <p className="text-xs text-zinc-400">JPEG, PNG ou WebP · max 2 Mo</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Disponibilité saisonnière */}
+      <SaisonSection watch={watch} setValue={setValue} />
+
       {/* Variantes */}
       <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
@@ -354,6 +655,7 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
                   <TableHead className="w-28">TVA (%)</TableHead>
                   <TableHead className="w-28">Prix TTC</TableHead>
                   <TableHead className="w-36">SKU</TableHead>
+                  <TableHead className="w-20 text-center">Pesée</TableHead>
                   <TableHead className="w-16 text-center">Actif</TableHead>
                   <TableHead className="w-12" />
                 </TableRow>
@@ -441,6 +743,12 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
                     </TableCell>
                     <TableCell className="text-center">
                       <Switch
+                        checked={watchedVariantes[index]?.venteAuPoids ?? false}
+                        onCheckedChange={(v) => setValue(`variantes.${index}.venteAuPoids`, v)}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
                         checked={watchedVariantes[index]?.actif ?? true}
                         onCheckedChange={(checked) => handleVarianteToggle(index, checked)}
                       />
@@ -487,6 +795,11 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
           setVarianteDeleteIndex(null)
         }}
       />
+
+      {/* Modal étiquettes */}
+      {showLabels && produit && (
+        <LabelPrintModal produit={produit} onClose={() => setShowLabels(false)} />
+      )}
 
       {/* Confirmation désactivation variante */}
       <DeactivateDialog

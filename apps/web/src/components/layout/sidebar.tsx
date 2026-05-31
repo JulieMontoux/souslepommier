@@ -18,6 +18,7 @@ import {
   ShieldAlert,
   CreditCard,
   Leaf,
+  Warehouse,
 } from 'lucide-react'
 
 type NavItem = {
@@ -39,6 +40,7 @@ const navGroups: { label?: string; items: NavItem[] }[] = [
     items: [
       { href: '/dashboard/produits', label: 'Produits', icon: Package },
       { href: '/dashboard/ventes', label: 'Ventes', icon: ShoppingBasket },
+      { href: '/dashboard/stock', label: 'Stock', icon: Warehouse },
       { href: '/dashboard/clients', label: 'Clients', icon: Building2 },
       { href: '/dashboard/factures', label: 'Factures', icon: FileText },
     ],

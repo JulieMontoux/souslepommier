@@ -105,7 +105,7 @@ export async function createVente(
       )
       .digest("hex");
 
-    return tx.vente.create({
+    const vente = await tx.vente.create({
       data: {
         numeroTicket,
         vendeurId,
@@ -138,5 +138,33 @@ export async function createVente(
         paiements: true,
       },
     });
+
+    // Decrement stock for each ligne
+    await Promise.all(
+      lignesComputed.map(async (l) => {
+        const v = await tx.varianteProduit.findUnique({
+          where: { id: l.varianteProduitId },
+          select: { stockActuel: true },
+        });
+        if (!v) return;
+        const newStock =
+          Math.round((Number(v.stockActuel) - l.qte) * 1000) / 1000;
+        await tx.varianteProduit.update({
+          where: { id: l.varianteProduitId },
+          data: { stockActuel: newStock },
+        });
+        await tx.mouvementStock.create({
+          data: {
+            varianteId: l.varianteProduitId,
+            type: "VENTE",
+            quantite: l.qte,
+            venteId: vente.id,
+            userId: vendeurId,
+          },
+        });
+      }),
+    );
+
+    return vente;
   });
 }

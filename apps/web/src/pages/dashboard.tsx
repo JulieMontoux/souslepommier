@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Lock, AlertTriangle } from 'lucide-react'
+import { Lock, AlertTriangle, Package } from 'lucide-react'
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth'
@@ -30,6 +30,21 @@ export default function DashboardPage() {
     refetchInterval: 60_000,
   })
 
+  const { data: stockAlerts } = useQuery<
+    {
+      id: string
+      produitNom: string
+      venteAuPoids: boolean
+      stockActuel: number
+      stockMin: number
+    }[]
+  >({
+    queryKey: ['stock-alerts'],
+    queryFn: () => api.get('/stock/alerts'),
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+  })
+
   const { data: clotureStatut } = useQuery({
     queryKey: ['caisse-statut'],
     queryFn: async () => {
@@ -53,6 +68,19 @@ export default function DashboardPage() {
             La caisse est <strong>clôturée</strong> pour aujourd&apos;hui.{' '}
             <Link to="/dashboard/clotures" className="font-medium underline underline-offset-2">
               Voir les clôtures
+            </Link>
+          </p>
+        </div>
+      )}
+
+      {stockAlerts && stockAlerts.length > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/40">
+          <Package className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            <strong>{stockAlerts.length}</strong> variante{stockAlerts.length > 1 ? 's' : ''} sous
+            le seuil minimum.{' '}
+            <Link to="/dashboard/stock" className="font-medium underline underline-offset-2">
+              Gérer les stocks
             </Link>
           </p>
         </div>

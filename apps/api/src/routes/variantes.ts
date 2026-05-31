@@ -17,6 +17,7 @@ const createVarianteSchema = z.object({
     .optional(),
   poids: z.number().min(0).optional().nullable(),
   sku: z.string().optional().nullable(),
+  venteAuPoids: z.boolean().optional(),
 });
 
 const updateVarianteSchema = z.object({
@@ -27,6 +28,8 @@ const updateVarianteSchema = z.object({
     .optional(),
   poids: z.number().min(0).optional().nullable(),
   sku: z.string().optional().nullable(),
+  venteAuPoids: z.boolean().optional(),
+  stockMin: z.number().min(0).optional().nullable(),
 });
 
 export const variantesRouter = new Hono<HonoEnv>();
@@ -51,7 +54,8 @@ variantesRouter.post("/", requireRole("GERANT"), async (c) => {
       422,
     );
 
-  const { produitId, prixHT, tauxTVA, emballage, poids, sku } = parsed.data;
+  const { produitId, prixHT, tauxTVA, emballage, poids, sku, venteAuPoids } =
+    parsed.data;
   const produit = await prisma.produit.findUnique({ where: { id: produitId } });
   if (!produit) return c.json({ error: "Produit introuvable" }, 404);
 
@@ -71,6 +75,7 @@ variantesRouter.post("/", requireRole("GERANT"), async (c) => {
         | "PLATEAU",
       ...(poids != null && { poids }),
       ...(sku != null && { sku }),
+      ...(venteAuPoids !== undefined && { venteAuPoids }),
     },
   });
   return c.json(variante, 201);
@@ -118,6 +123,12 @@ variantesRouter.put("/:id", requireRole("GERANT"), async (c) => {
       }),
       ...(parsed.data.poids !== undefined && { poids: parsed.data.poids }),
       ...(parsed.data.sku !== undefined && { sku: parsed.data.sku }),
+      ...(parsed.data.venteAuPoids !== undefined && {
+        venteAuPoids: parsed.data.venteAuPoids,
+      }),
+      ...(parsed.data.stockMin !== undefined && {
+        stockMin: parsed.data.stockMin,
+      }),
     },
   });
   return c.json(variante);

@@ -6,13 +6,18 @@ export type ProduitPOSVariante = {
   tauxTVA: number
   prixTTC: number
   sku: string | null
+  venteAuPoids: boolean
+  stockActuel: number
+  stockMin: number | null
 }
 
 export type ProduitPOS = {
   id: string
   nom: string
   description: string | null
+  image: string | null
   categorieNom: string | null
+  horsJour: boolean
   variantes: ProduitPOSVariante[]
 }
 
@@ -25,4 +30,5 @@ export type LigneCart = {
   prixUnitaireHT: number
   tauxTVA: number
   remise?: number
+  venteAuPoids?: boolean
 }

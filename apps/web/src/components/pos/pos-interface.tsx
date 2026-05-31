@@ -9,6 +9,7 @@ import { LogOut, Leaf } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { recapTVA, roundFiscal, calcMontantTVA } from '@/lib/tva'
 import { VariantePicker } from './variante-picker'
+import { WeightInputModal } from './weight-input-modal'
 import { PaiementModal } from './paiement-modal'
 import { TicketModal } from './ticket-modal'
 import { ProductList } from './ProductList'
@@ -28,9 +29,13 @@ const EMBALLAGE_LABELS: Record<string, string> = {
 
 function buildVarianteLabel(v: ProduitPOSVariante): string {
   const parts: string[] = []
-  if (v.poids) parts.push(`${v.poids} kg`)
+  if (!v.venteAuPoids && v.poids) parts.push(`${v.poids} kg`)
   parts.push(EMBALLAGE_LABELS[v.emballage] ?? v.emballage)
-  parts.push(`${v.prixTTC.toFixed(2).replace('.', ',')} €`)
+  parts.push(
+    v.venteAuPoids
+      ? `${v.prixTTC.toFixed(2).replace('.', ',')} €/kg`
+      : `${v.prixTTC.toFixed(2).replace('.', ',')} €`
+  )
   return parts.join(' · ')
 }
 
@@ -83,6 +88,10 @@ export function POSInterface({
     }
   })
   const [picking, setPicking] = useState<ProduitPOS | null>(null)
+  const [weighing, setWeighing] = useState<{
+    produit: ProduitPOS
+    variante: ProduitPOSVariante
+  } | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [saving, setSaving] = useState(false)
   const [lastVente, setLastVente] = useState<{ id: string; numeroTicket: string } | null>(null)
@@ -103,25 +112,38 @@ export function POSInterface({
     }
   }
 
-  function addVariante(produit: ProduitPOS, variante: ProduitPOSVariante) {
+  function addVariante(produit: ProduitPOS, variante: ProduitPOSVariante, poidsKg?: number) {
     setPicking(null)
+    setWeighing(null)
+
+    if (variante.venteAuPoids && poidsKg === undefined) {
+      setWeighing({ produit, variante })
+      return
+    }
+
+    const qte = variante.venteAuPoids ? (poidsKg ?? 0) : 1
+    const lineKey = variante.venteAuPoids ? `${variante.id}-${Date.now()}` : variante.id
+
     setCart((prev) => {
-      const existing = prev.find((l) => l.varianteProduitId === variante.id)
-      if (existing) {
-        return prev.map((l) =>
-          l.varianteProduitId === variante.id ? { ...l, qte: roundFiscal(l.qte + 1) } : l
-        )
+      if (!variante.venteAuPoids) {
+        const existing = prev.find((l) => l.varianteProduitId === variante.id && !l.venteAuPoids)
+        if (existing) {
+          return prev.map((l) =>
+            l.key === existing.key ? { ...l, qte: roundFiscal(l.qte + 1) } : l
+          )
+        }
       }
       return [
         ...prev,
         {
-          key: variante.id,
+          key: lineKey,
           varianteProduitId: variante.id,
           produitNom: produit.nom,
           varianteLabel: buildVarianteLabel(variante),
-          qte: 1,
+          qte,
           prixUnitaireHT: variante.prixHT,
           tauxTVA: variante.tauxTVA,
+          venteAuPoids: variante.venteAuPoids,
         },
       ]
     })
@@ -215,16 +237,17 @@ export function POSInterface({
 
       if (e.key === 'Escape') {
         if (picking) setPicking(null)
+        else if (weighing) setWeighing(null)
         else if (confirming) setConfirming(false)
       }
-      if (e.key === 'Enter' && !picking && !confirming && cart.length > 0) {
+      if (e.key === 'Enter' && !picking && !weighing && !confirming && cart.length > 0) {
         setConfirming(true)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [picking, confirming, cart.length, produits])
+  }, [picking, weighing, confirming, cart.length, produits])
 
   async function handleEncaisser(paiements: PaiementInput[]) {
     if (cart.length === 0 || saving) return
@@ -362,6 +385,16 @@ export function POSInterface({
           produit={picking}
           onSelect={(variante) => addVariante(picking, variante)}
           onClose={() => setPicking(null)}
+        />
+      )}
+
+      {/* Saisie poids */}
+      {weighing && (
+        <WeightInputModal
+          produit={weighing.produit}
+          variante={weighing.variante}
+          onConfirm={(poids) => addVariante(weighing.produit, weighing.variante, poids)}
+          onClose={() => setWeighing(null)}
         />
       )}
 

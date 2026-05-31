@@ -27,7 +27,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { DeactivateDialog } from './deactivate-dialog'
 import { cn } from '@/lib/utils'
-import { Plus, Pencil, Search } from 'lucide-react'
+import { Plus, Pencil, Search, Tag } from 'lucide-react'
+import { LabelPrintModal } from './label-print-modal'
 
 interface ProduitsListProps {
   produits: ProduitComplet[]
@@ -43,6 +44,7 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
   const [filterCategorie, setFilterCategorie] = useState<string>('tous')
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; nom: string } | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
+  const [labelProduit, setLabelProduit] = useState<ProduitComplet | null>(null)
 
   const filtered = produits.filter((p) => {
     if (filterStatut === 'actif' && !p.actif) return false
@@ -222,13 +224,28 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
                       />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Link
-                        to={`/dashboard/produits/${produit.id}`}
-                        className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'gap-1.5')}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Modifier
-                      </Link>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setLabelProduit(produit)}
+                          className={cn(
+                            buttonVariants({ variant: 'ghost', size: 'sm' }),
+                            'gap-1.5 text-zinc-500'
+                          )}
+                          title="Imprimer étiquettes"
+                        >
+                          <Tag className="h-3.5 w-3.5" />
+                        </button>
+                        <Link
+                          to={`/dashboard/produits/${produit.id}`}
+                          className={cn(
+                            buttonVariants({ variant: 'ghost', size: 'sm' }),
+                            'gap-1.5'
+                          )}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Modifier
+                        </Link>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )
@@ -237,6 +254,11 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
           </TableBody>
         </Table>
       </div>
+
+      {/* Modal étiquettes */}
+      {labelProduit && (
+        <LabelPrintModal produit={labelProduit} onClose={() => setLabelProduit(null)} />
+      )}
 
       {/* Confirmation désactivation */}
       <DeactivateDialog

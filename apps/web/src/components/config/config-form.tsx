@@ -8,6 +8,7 @@ import { configSchema, FORMES_JURIDIQUES, type ConfigFormValues } from '@/lib/va
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
@@ -18,15 +19,17 @@ import {
 } from '@/components/ui/select'
 import { LogoUpload } from './logo-upload'
 import { ConfigPreview } from './config-preview'
-import { Save } from 'lucide-react'
+import { Save, Send } from 'lucide-react'
 
 interface ConfigFormProps {
-  initialConfig: (ConfigFormValues & { logoUrl?: string | null }) | null
+  initialConfig: (ConfigFormValues & { logoUrl?: string | null; smtpPassSet?: boolean }) | null
 }
 
 export function ConfigForm({ initialConfig }: ConfigFormProps) {
   const [logoUrl, setLogoUrl] = useState<string | null>(initialConfig?.logoUrl ?? null)
   const [saving, setSaving] = useState(false)
+  const [testEmail, setTestEmail] = useState('')
+  const [testingSMTP, setTestingSMTP] = useState(false)
   const [watchedValues, setWatchedValues] = useState<Partial<ConfigFormValues>>(initialConfig ?? {})
 
   const {
@@ -56,6 +59,12 @@ export function ConfigForm({ initialConfig }: ConfigFormProps) {
       regimeTVA: initialConfig?.regimeTVA ?? 'NORMAL',
       responsableRGPD: initialConfig?.responsableRGPD ?? '',
       emailRGPD: initialConfig?.emailRGPD ?? '',
+      smtpHost: initialConfig?.smtpHost ?? '',
+      smtpPort: initialConfig?.smtpPort ?? '',
+      smtpUser: initialConfig?.smtpUser ?? '',
+      smtpPass: '',
+      smtpFrom: initialConfig?.smtpFrom ?? '',
+      smtpTls: initialConfig?.smtpTls ?? true,
     },
   })
 
@@ -86,6 +95,25 @@ export function ConfigForm({ initialConfig }: ConfigFormProps) {
     }
   }
 
+  async function handleSmtpTest() {
+    if (!testEmail) return
+    setTestingSMTP(true)
+    try {
+      const res = await fetch('/api/config/smtp-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: testEmail }),
+      })
+      const data = await res.json()
+      if (!res.ok) toast.error(data.error ?? 'Échec du test SMTP')
+      else toast.success('Email de test envoyé !')
+    } catch {
+      toast.error('Erreur réseau')
+    } finally {
+      setTestingSMTP(false)
+    }
+  }
+
   function fieldError(name: keyof ConfigFormValues) {
     const msg = errors[name]?.message
     return msg ? <p className="mt-1 text-xs text-red-500">{msg}</p> : null
@@ -107,10 +135,11 @@ export function ConfigForm({ initialConfig }: ConfigFormProps) {
       </div>
 
       <Tabs defaultValue="identite">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="identite">Identité</TabsTrigger>
           <TabsTrigger value="contact">Contact</TabsTrigger>
           <TabsTrigger value="fiscal">Fiscal & légal</TabsTrigger>
+          <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="apercu">Aperçu</TabsTrigger>
         </TabsList>
 
@@ -329,6 +358,97 @@ export function ConfigForm({ initialConfig }: ConfigFormProps) {
                 <Label htmlFor="villeRCS">Ville d&apos;immatriculation</Label>
                 <Input id="villeRCS" {...register('villeRCS')} placeholder="Paris" />
               </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ── Onglet Email ─────────────────────────────────────────────────── */}
+        <TabsContent value="email" className="mt-4 space-y-6">
+          <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 font-semibold text-zinc-800">Serveur SMTP sortant</h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="smtpHost">Hôte SMTP</Label>
+                <Input id="smtpHost" {...register('smtpHost')} placeholder="smtp.example.com" />
+              </div>
+              <div>
+                <Label htmlFor="smtpPort">Port</Label>
+                <Input
+                  id="smtpPort"
+                  type="number"
+                  min={1}
+                  max={65535}
+                  {...register('smtpPort')}
+                  placeholder="587"
+                />
+              </div>
+              <div>
+                <Label htmlFor="smtpUser">Utilisateur</Label>
+                <Input
+                  id="smtpUser"
+                  {...register('smtpUser')}
+                  placeholder="user@example.com"
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <Label htmlFor="smtpPass">
+                  Mot de passe
+                  {initialConfig?.smtpPassSet && (
+                    <span className="ml-2 text-xs text-zinc-400">
+                      (déjà configuré — laisser vide pour conserver)
+                    </span>
+                  )}
+                </Label>
+                <Input
+                  id="smtpPass"
+                  type="password"
+                  {...register('smtpPass')}
+                  placeholder={initialConfig?.smtpPassSet ? '••••••••' : 'Mot de passe SMTP'}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <Label htmlFor="smtpFrom">Adresse expéditeur</Label>
+                <Input
+                  id="smtpFrom"
+                  {...register('smtpFrom')}
+                  placeholder="Sous le Pommier <contact@example.com>"
+                />
+              </div>
+              <div className="flex items-center gap-3 pt-6">
+                <Switch
+                  checked={watch('smtpTls') ?? true}
+                  onCheckedChange={(v) => setValue('smtpTls', v)}
+                />
+                <Label>TLS/STARTTLS activé</Label>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 font-semibold text-zinc-800">Test d&apos;envoi</h2>
+            <p className="mb-3 text-sm text-zinc-500">
+              Sauvegardez d&apos;abord la configuration, puis envoyez un email de test.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="destinataire@example.com"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                className="max-w-xs"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSmtpTest}
+                disabled={testingSMTP || !testEmail}
+                className="gap-2"
+              >
+                <Send className="h-4 w-4" />
+                {testingSMTP ? 'Envoi…' : 'Envoyer test'}
+              </Button>
             </div>
           </div>
         </TabsContent>
