@@ -34,6 +34,7 @@ const venteCreateSchema = z.object({
       }),
     )
     .min(1),
+  pointDeVenteId: z.string().optional(),
 });
 
 export const ventesRouter = new Hono<HonoEnv>();
@@ -45,12 +46,14 @@ ventesRouter.get("/", async (c) => {
   const to = c.req.query("to");
   const vendeurId = c.req.query("vendeurId");
   const statut = c.req.query("statut");
+  const pointDeVenteId = c.req.query("pointDeVenteId");
   const page = parseInt(c.req.query("page") ?? "1", 10);
   const limit = parseInt(c.req.query("limit") ?? "50", 10);
   const skip = (page - 1) * limit;
 
   const where = {
     ...(vendeurId && { vendeurId }),
+    ...(pointDeVenteId && { pointDeVenteId }),
     ...(statut && { statut: statut as "OUVERTE" | "FINALISEE" | "ANNULEE" }),
     ...((from || to) && {
       date: {
@@ -96,6 +99,9 @@ ventesRouter.post("/", async (c) => {
       user.id,
       parsed.data.lignes,
       parsed.data.paiements,
+      parsed.data.pointDeVenteId
+        ? { pointDeVenteId: parsed.data.pointDeVenteId }
+        : undefined,
     );
     await logAudit({
       userId: user.id,

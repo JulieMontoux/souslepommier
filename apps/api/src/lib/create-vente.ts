@@ -23,7 +23,11 @@ export async function createVente(
   vendeurId: string,
   lignes: LigneVenteInput[],
   paiements: PaiementVenteInput[],
-  options?: { dateOverride?: Date; skipClotureCheck?: boolean },
+  options?: {
+    dateOverride?: Date;
+    skipClotureCheck?: boolean;
+    pointDeVenteId?: string;
+  },
 ) {
   const now = options?.dateOverride ?? new Date();
 
@@ -121,6 +125,9 @@ export async function createVente(
         statut: "FINALISEE",
         hash,
         hashPrecedent,
+        ...(options?.pointDeVenteId && {
+          pointDeVenteId: options.pointDeVenteId,
+        }),
         lignes: { create: lignesComputed.map((l) => ({ ...l })) },
         paiements: {
           create: paiements.map((p) => ({

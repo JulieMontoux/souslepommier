@@ -1,9 +1,14 @@
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth'
 import { POSInterface } from '@/components/pos/pos-interface'
 import type { ProduitPOS } from '@/types/pos'
 import type { ConfigTicket } from '@/types/ticket'
+
+const PDV_STORAGE_KEY = 'pos_pdv_id'
+
+type PointDeVente = { id: string; nom: string; actif: boolean }
 
 type ConfigApi = {
   raisonSociale: string
@@ -18,6 +23,20 @@ type ConfigApi = {
 export default function PosPage() {
   const { state } = useAuth()
   const user = state.status === 'authenticated' ? state.user : null
+  const [pointDeVenteId, setPointDeVenteId] = useState<string>(
+    () => localStorage.getItem(PDV_STORAGE_KEY) ?? ''
+  )
+
+  const { data: pdvs = [] } = useQuery<PointDeVente[]>({
+    queryKey: ['points-de-vente'],
+    queryFn: () => api.get('/points-de-vente?actif=true'),
+    staleTime: 60_000,
+  })
+
+  useEffect(() => {
+    if (pointDeVenteId) localStorage.setItem(PDV_STORAGE_KEY, pointDeVenteId)
+    else localStorage.removeItem(PDV_STORAGE_KEY)
+  }, [pointDeVenteId])
 
   const { data: produits = [], isLoading: l1 } = useQuery<ProduitPOS[]>({
     queryKey: ['produits', 'pos'],
@@ -93,13 +112,36 @@ export default function PosPage() {
       }
     : null
 
+  const activePdv = pdvs.find((p) => p.id === pointDeVenteId) ?? null
+
   return (
-    <POSInterface
-      produits={produits}
-      user={{ id: user.id, prenom: user.prenom, nom: user.nom, role: user.role }}
-      config={config}
-      isCloturee={clotureStatut?.isCloturee ?? false}
-      onReouverture={() => refetchStatut()}
-    />
+    <>
+      {pdvs.length > 0 && (
+        <div className="fixed top-0 right-0 left-0 z-50 flex items-center justify-end gap-2 bg-black/60 px-4 py-1.5 text-xs text-white backdrop-blur-sm">
+          <span className="text-white/60">Point de vente :</span>
+          <select
+            value={pointDeVenteId}
+            onChange={(e) => setPointDeVenteId(e.target.value)}
+            className="rounded bg-white/10 px-2 py-0.5 text-white focus:outline-none"
+          >
+            <option value="">— Non défini —</option>
+            {pdvs.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nom}
+              </option>
+            ))}
+          </select>
+          {activePdv && <span className="ml-1 font-medium text-green-400">{activePdv.nom}</span>}
+        </div>
+      )}
+      <POSInterface
+        produits={produits}
+        user={{ id: user.id, prenom: user.prenom, nom: user.nom, role: user.role }}
+        config={config}
+        isCloturee={clotureStatut?.isCloturee ?? false}
+        onReouverture={() => refetchStatut()}
+        pointDeVenteId={pointDeVenteId || undefined}
+      />
+    </>
   )
 }

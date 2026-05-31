@@ -20,6 +20,7 @@ import {
   Leaf,
   Warehouse,
   Repeat2,
+  MapPin,
 } from 'lucide-react'
 
 type NavItem = {
@@ -50,6 +51,7 @@ const navGroups: { label?: string; items: NavItem[] }[] = [
   {
     label: 'Gestion',
     items: [
+      { href: '/dashboard/points-de-vente', label: 'Points de vente', icon: MapPin },
       { href: '/dashboard/clotures', label: 'Clôtures', icon: Lock },
       { href: '/dashboard/statistiques', label: 'Statistiques', icon: BarChart3 },
       { href: '/dashboard/vendeurs', label: 'Vendeurs', icon: Users },

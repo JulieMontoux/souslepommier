@@ -178,15 +178,17 @@ model Vente {
   statut        StatutVente @default(OUVERTE)
   hash          String
   hashPrecedent String?
-  motifAnnulation String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  motifAnnulation  String?
+  pointDeVenteId   String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
-  vendeur    User         @relation(fields: [vendeurId], references: [id])
-  lignes     LigneVente[]
-  paiements  Paiement[]
-  factures   Facture[]
-  livraisons Livraison[]
+  vendeur      User          @relation(fields: [vendeurId], references: [id])
+  pointDeVente PointDeVente? @relation(fields: [pointDeVenteId], references: [id])
+  lignes       LigneVente[]
+  paiements    Paiement[]
+  factures     Facture[]
+  livraisons   Livraison[]
 
   @@index([date])
   @@index([vendeurId])
@@ -276,9 +278,11 @@ model ClotureCaisse {
   ventesAnnulees Json?
   hashCumulatif  String
   pdfUrl         String?
+  pointDeVenteId String?
   createdAt      DateTime @default(now())
 
-  gerant User @relation(fields: [gerantId], references: [id])
+  gerant       User          @relation(fields: [gerantId], references: [id])
+  pointDeVente PointDeVente? @relation(fields: [pointDeVenteId], references: [id])
 
   @@index([date])
   @@map("clotures_caisse")
@@ -442,6 +446,20 @@ model TauxTVA {
   createdAt   DateTime @default(now())
 
   @@map("taux_tva")
+}
+
+// ─── Points de vente ─────────────────────────────────────────────────────────
+
+model PointDeVente {
+  id       String @id @default(cuid())
+  nom      String
+  actif    Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  ventes    Vente[]
+  clotures  ClotureCaisse[]
+
+  @@map("points_de_vente")
 }
 
 // ─── AMAP / Abonnements ──────────────────────────────────────────────────────

@@ -48,6 +48,7 @@ interface POSInterfaceProps {
   config: ConfigTicket
   isCloturee: boolean
   onReouverture: () => void
+  pointDeVenteId?: string
 }
 
 export function POSInterface({
@@ -56,6 +57,7 @@ export function POSInterface({
   config,
   isCloturee,
   onReouverture,
+  pointDeVenteId,
 }: POSInterfaceProps) {
   const navigate = useNavigate()
   const { logout } = useAuth()
@@ -299,6 +301,7 @@ export function POSInterface({
         ...(l.remise && l.remise > 0 ? { remise: l.remise } : {}),
       })),
       paiements,
+      ...(pointDeVenteId && { pointDeVenteId }),
     }
 
     if (!online) {

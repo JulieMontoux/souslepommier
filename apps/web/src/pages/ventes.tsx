@@ -40,6 +40,8 @@ type Meta = { total: number; page: number; limit: number; totalPages: number }
 
 type User = { id: string; prenom: string; nom: string }
 
+type PDV = { id: string; nom: string }
+
 const LIMIT = 50
 
 function todayLocal() {
@@ -57,6 +59,7 @@ export default function VentesPage() {
   const [to, setTo] = useState(() => searchParams.get('to') ?? todayLocal())
   const [vendeurId, setVendeurId] = useState(() => searchParams.get('vendeurId') ?? '')
   const [statut, setStatut] = useState(() => searchParams.get('statut') ?? '')
+  const [pointDeVenteId, setPointDeVenteId] = useState('')
   const [page, setPage] = useState(1)
 
   const params = new URLSearchParams({ limit: String(LIMIT), page: String(page) })
@@ -68,15 +71,22 @@ export default function VentesPage() {
   }
   if (vendeurId) params.set('vendeurId', vendeurId)
   if (statut) params.set('statut', statut)
+  if (pointDeVenteId) params.set('pointDeVenteId', pointDeVenteId)
 
   const { data, isLoading } = useQuery<{ data: VenteSummary[]; meta: Meta }>({
-    queryKey: ['ventes', from, to, vendeurId, statut, page],
+    queryKey: ['ventes', from, to, vendeurId, statut, pointDeVenteId, page],
     queryFn: () => api.get(`/ventes?${params}`),
   })
 
   const { data: users } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: () => api.get('/users'),
+    staleTime: 60_000,
+  })
+
+  const { data: pdvs = [] } = useQuery<PDV[]>({
+    queryKey: ['points-de-vente'],
+    queryFn: () => api.get('/points-de-vente'),
     staleTime: 60_000,
   })
 
@@ -149,6 +159,20 @@ export default function VentesPage() {
           <option value="FINALISEE">Finalisée</option>
           <option value="ANNULEE">Annulée</option>
         </select>
+        {pdvs.length > 0 && (
+          <select
+            value={pointDeVenteId}
+            onChange={(e) => handleFilter(() => setPointDeVenteId(e.target.value))}
+            className="border-border bg-background text-foreground rounded-lg border px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-600 focus:outline-none"
+          >
+            <option value="">Tous les points de vente</option>
+            {pdvs.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nom}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {isLoading ? (
