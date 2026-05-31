@@ -36,7 +36,7 @@ export function CartPanel({
   onClearCart,
   onConfirmPayment,
   setConfirming,
-  setSaving,
+  setSaving: _setSaving,
   totalHT,
   totalTTC,
   tvaRecap,

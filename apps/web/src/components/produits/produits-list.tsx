@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import type { ProduitComplet } from '@/types/produits'
@@ -36,7 +35,6 @@ interface ProduitsListProps {
 }
 
 export function ProduitsList({ produits: initial, categories }: ProduitsListProps) {
-  const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [produits, setProduits] = useState(initial)
   const [search, setSearch] = useState('')

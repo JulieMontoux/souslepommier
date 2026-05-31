@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Users, Plus, ChevronRight, CheckCircle, XCircle } from 'lucide-react'
@@ -25,7 +24,6 @@ interface VendeurListProps {
 }
 
 export function VendeurList({ users }: VendeurListProps) {
-  const navigate = useNavigate()
   const { state } = useAuth()
   const isSuperAdmin = state.status === 'authenticated' && state.user.role === 'SUPERADMIN'
   const [isPending, startTransition] = useTransition()

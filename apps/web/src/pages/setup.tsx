@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Leaf, ShieldCheck } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
 import { api, ApiError } from '@/lib/api'
 
 const schema = z.object({

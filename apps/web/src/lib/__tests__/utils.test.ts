@@ -7,7 +7,8 @@ describe('cn (classname utility)', () => {
   })
 
   it('handles conditional classes', () => {
-    expect(cn('base', false && 'hidden', 'visible')).toBe('base visible')
+    const condition = false
+    expect(cn('base', condition && 'hidden', 'visible')).toBe('base visible')
   })
 
   it('tailwind: later class wins over earlier conflicting class', () => {

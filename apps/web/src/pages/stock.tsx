@@ -1,12 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  ArrowDownCircle,
-  ArrowUpCircle,
-  SlidersHorizontal,
-  History,
-  AlertTriangle,
-} from 'lucide-react'
+import { SlidersHorizontal, History, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { Input } from '@/components/ui/input'
@@ -268,7 +262,6 @@ function HistoryDialog({ variante, onClose }: { variante: StockVariante; onClose
 }
 
 export default function StockPage() {
-  const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [filterAlerts, setFilterAlerts] = useState(false)
   const [adjusting, setAdjusting] = useState<StockVariante | null>(null)

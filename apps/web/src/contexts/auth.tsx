@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { api, ApiError } from '@/lib/api'
+import { api } from '@/lib/api'
 
 export type AuthUser = {
   id: string

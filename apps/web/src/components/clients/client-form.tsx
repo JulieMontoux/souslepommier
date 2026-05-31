@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useTransition } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -63,6 +63,7 @@ export function ClientForm({ client }: ClientFormProps) {
     watch,
     formState: { errors },
   } = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       raisonSociale: client?.raisonSociale ?? '',
       siret: client?.siret ?? '',
