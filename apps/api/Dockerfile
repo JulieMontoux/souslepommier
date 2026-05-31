@@ -36,7 +36,6 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 appuser
 
 COPY --from=api-builder /app/apps/api/dist ./apps/api/dist
 COPY --from=api-builder /app/node_modules ./node_modules
-COPY --from=api-builder /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=db-builder /app/packages/database/dist ./packages/database/dist
 COPY --from=db-builder /app/packages/database/src/generated ./packages/database/src/generated
 COPY packages/database/package.json ./packages/database/package.json
