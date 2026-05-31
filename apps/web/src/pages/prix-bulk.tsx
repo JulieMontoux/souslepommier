@@ -23,7 +23,6 @@ function getTauxNum(v: Variante) {
 type Produit = {
   id: string
   nom: string
-  categorie: string
   actif: boolean
 }
 

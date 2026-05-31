@@ -23,7 +23,6 @@ export type ProduitPOS = {
   nom: string
   description: string | null
   image: string | null
-  categorieNom: string | null
   horsJour: boolean
   variantes: ProduitPOSVariante[]
 }

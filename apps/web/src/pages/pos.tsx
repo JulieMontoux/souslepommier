@@ -56,7 +56,6 @@ export default function PosPage() {
         nom: p.nom as string,
         description: (p.description as string | null) ?? null,
         image: (p.image as string | null) ?? null,
-        categorieNom: (p.categorie as { nom: string } | null)?.nom ?? null,
         horsJour: Boolean(p.horsJour),
         variantes: ((p.variantes as Record<string, unknown>[]) ?? [])
           .filter((v) => v.actif)

@@ -11,7 +11,6 @@ type StockVariante = {
   id: string
   produitId: string
   produitNom: string
-  categorieNom: string | null
   poids: number | null
   emballage: string
   venteAuPoids: boolean
@@ -363,9 +362,6 @@ export default function StockPage() {
                     <tr key={v.id} className="hover:bg-muted/40 transition-colors">
                       <td className="px-4 py-3">
                         <p className="font-medium">{v.produitNom}</p>
-                        {v.categorieNom && (
-                          <p className="text-muted-foreground text-xs">{v.categorieNom}</p>
-                        )}
                       </td>
                       <td className="text-muted-foreground px-4 py-3 text-xs">
                         {varianteLabel(v)}

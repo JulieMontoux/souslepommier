@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Search, Package } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import type { ProduitPOS, ProduitPOSVariante } from '@/types/pos'
 
@@ -53,14 +52,7 @@ interface ProductListProps {
 
 export function ProductList({ produits, onProductSelect }: ProductListProps) {
   const [search, setSearch] = useState('')
-  const [activeCategorie, setActiveCategorie] = useState<string | null>(null)
-
-  const categories = Array.from(
-    new Set(produits.map((p) => p.categorieNom).filter((c): c is string => c !== null))
-  ).sort()
-
   const filteredProduits = produits.filter((p) => {
-    if (activeCategorie && p.categorieNom !== activeCategorie) return false
     if (search && !p.nom.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
@@ -91,33 +83,6 @@ export function ProductList({ produits, onProductSelect }: ProductListProps) {
           />
         </div>
 
-        {categories.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              onClick={() => setActiveCategorie(null)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                activeCategorie === null
-                  ? 'bg-green-600 text-white'
-                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
-              }`}
-            >
-              Tout
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategorie(activeCategorie === cat ? null : cat)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  activeCategorie === cat
-                    ? 'bg-green-600 text-white'
-                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Grille produits */}
@@ -164,14 +129,6 @@ export function ProductList({ produits, onProductSelect }: ProductListProps) {
                   <p className="text-center text-sm leading-tight font-medium text-zinc-800 dark:text-zinc-100">
                     {produit.nom}
                   </p>
-                  {produit.categorieNom && (
-                    <Badge
-                      variant="secondary"
-                      className="text-xs dark:bg-zinc-700 dark:text-zinc-300"
-                    >
-                      {produit.categorieNom}
-                    </Badge>
-                  )}
                   {prixMin !== null && (
                     <p className="text-sm font-bold text-green-700 dark:text-green-400">
                       {prixMin.toFixed(2).replace('.', ',')} €
