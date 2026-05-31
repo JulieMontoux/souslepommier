@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { Hono } from "hono";
+import type { HonoEnv } from "../../lib/middleware.js";
 
 const ACTIVE_GERANT = { actif: true, role: "GERANT" };
 const INACTIVE_USER = { actif: false, role: "GERANT" };
@@ -31,7 +32,7 @@ async function makeApp(mockUser: typeof ACTIVE_GERANT | null, role?: string) {
 
   const { authMiddleware, requireRole } =
     await import("../../lib/middleware.js");
-  const app = new Hono();
+  const app = new Hono<HonoEnv>();
   app.use("/protected", authMiddleware);
   app.get("/protected", (c) => c.json({ ok: true, role: c.get("user")?.role }));
 
