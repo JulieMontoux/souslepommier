@@ -14,7 +14,6 @@ export default function ProduitsPage() {
             ...v,
             poids: v.poids != null ? Number(v.poids) : null,
             prixHT: Number(v.prixHT),
-            tauxTVA: Number(v.tauxTVA),
             prixTTC: Number(v.prixTTC),
           })),
         }))

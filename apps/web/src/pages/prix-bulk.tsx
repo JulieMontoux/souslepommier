@@ -10,10 +10,14 @@ type Variante = {
   produitId: string
   prixHT: number
   prixTTC: number
-  tauxTVA: number
+  tauxTVA: { id: string; libelle: string; taux: number } | number
   emballage: string
   poids: number | null
   actif: boolean
+}
+
+function getTauxNum(v: Variante) {
+  return typeof v.tauxTVA === 'object' ? v.tauxTVA.taux : v.tauxTVA
 }
 
 type Produit = {
@@ -149,7 +153,7 @@ export default function PrixBulkPage() {
                 const editedHT =
                   rawVal !== undefined ? parseFloat(rawVal.replace(',', '.')) : Number(v.prixHT)
                 const previewTTC = !isNaN(editedHT)
-                  ? (editedHT * (1 + Number(v.tauxTVA) / 100)).toFixed(2).replace('.', ',')
+                  ? (editedHT * (1 + getTauxNum(v) / 100)).toFixed(2).replace('.', ',')
                   : '—'
                 const isEdited = rawVal !== undefined
 
@@ -163,7 +167,7 @@ export default function PrixBulkPage() {
                     </td>
                     <td className="text-muted-foreground px-4 py-2.5">{varianteLabel(v)}</td>
                     <td className="text-muted-foreground px-4 py-2.5 text-right">
-                      {Number(v.tauxTVA)}%
+                      {getTauxNum(v)}%
                     </td>
                     <td className="px-4 py-2 text-right">
                       <input

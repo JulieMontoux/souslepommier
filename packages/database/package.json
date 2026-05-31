@@ -9,6 +9,7 @@
     "build": "prisma generate --config prisma.config.ts && tsc --project tsconfig.json",
     "db:generate": "prisma generate --config prisma.config.ts",
     "db:migrate": "prisma migrate dev --config prisma.config.ts",
+    "db:reset": "prisma migrate reset --config prisma.config.ts",
     "db:deploy": "prisma migrate deploy --config prisma.config.ts",
     "db:seed": "ts-node prisma/seed/index.ts",
     "db:studio": "prisma studio --config prisma.config.ts"

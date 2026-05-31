@@ -65,7 +65,7 @@ export default function PosPage() {
             poids: v.poids != null ? Number(v.poids) : null,
             emballage: v.emballage as string,
             prixHT: Number(v.prixHT),
-            tauxTVA: Number(v.tauxTVA),
+            tauxTVA: Number((v.tauxTVA as { taux?: number } | null)?.taux ?? 0),
             prixTTC: Number(v.prixTTC),
             sku: (v.sku as string | null) ?? null,
             venteAuPoids: Boolean(v.venteAuPoids),

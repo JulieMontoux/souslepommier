@@ -156,7 +156,14 @@ produitsRouter.get("/:id", async (c) => {
     },
   });
   if (!produit) return c.json({ error: "Produit introuvable" }, 404);
-  return c.json({ ...produit, horsJour: isHorsSaison(produit) });
+  return c.json({
+    ...produit,
+    horsJour: isHorsSaison(produit),
+    variantes: produit.variantes.map((v) => ({
+      ...v,
+      prixTTC: Number(v.prixHT) * (1 + Number(v.tauxTVA.taux) / 100),
+    })),
+  });
 });
 
 produitsRouter.put("/:id", requireRole("GERANT", "VENDEUR"), async (c) => {

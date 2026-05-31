@@ -22,6 +22,7 @@ import {
   Warehouse,
   Repeat2,
   MapPin,
+  Tag,
 } from 'lucide-react'
 
 type NavItem = {
@@ -65,6 +66,7 @@ const navGroups: { label?: string; items: NavItem[] }[] = [
     items: [
       { href: '/dashboard/rgpd', label: 'RGPD', icon: ShieldAlert, exact: true },
       { href: '/dashboard/configuration/tva', label: 'Taux TVA', icon: Percent, exact: true },
+      { href: '/dashboard/configuration/categories', label: 'Catégories', icon: Tag, exact: true },
       { href: '/dashboard/configuration', label: 'Configuration', icon: Settings, exact: true },
     ],
   },
