@@ -88,4 +88,4 @@ apps/api/dist/
 
 .claude/
 
-.npmrc
+*.npmrc
