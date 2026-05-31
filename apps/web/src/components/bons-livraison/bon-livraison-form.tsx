@@ -18,12 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { roundFiscal, calcMontantTVA } from '@/lib/tva'
+import { roundFiscal } from '@/lib/tva'
 import { api } from '@/lib/api'
 import type { ClientComplet } from '@/types/client'
 import type { ProduitPOS, ProduitPOSVariante } from '@/types/pos'
-
-const TVA_TAUX = ['0', '5.5', '10', '20'] as const
 
 const EMBALLAGE: Record<string, string> = {
   VRAC: '',
@@ -38,8 +36,8 @@ type LigneForm = {
   varianteProduitId: string
   designation: string
   qte: string
+  unite: string
   prixUnitaireHT: string
-  tauxTVA: string
   remise: string
 }
 
@@ -49,10 +47,9 @@ type FormValues = {
   venteTicket: string
   lignes: LigneForm[]
   remiseCommerciale: string
-  dateEcheance: string
   dateLivraison: string
   notes: string
-  statut: 'BROUILLON' | 'EMISE'
+  statut: 'BROUILLON' | 'EMIS'
 }
 
 interface VentePreview {
@@ -65,14 +62,12 @@ interface VentePreview {
     prixUnitaireHT: number | string
     tauxTVA: number | string
     montantHT: number | string
-    montantTVA: number | string
-    montantTTC: number | string
     remise: number | string
     variante?: { produit: { nom: string }; poids?: number | string | null; emballage: string }
   }>
 }
 
-interface FactureFormProps {
+interface BonLivraisonFormProps {
   clients: ClientComplet[]
 }
 
@@ -82,6 +77,12 @@ function varianteLabel(v: ProduitPOSVariante): string {
   const emb = EMBALLAGE[v.emballage]
   if (emb) parts.push(emb)
   return parts.join(' ') || 'Unité'
+}
+
+function varianteUnite(v: ProduitPOSVariante): string {
+  if (v.poids) return 'kg'
+  const emb = EMBALLAGE[v.emballage]
+  return emb || 'unité'
 }
 
 // ─── Catalogue picker ────────────────────────────────────────────────────────
@@ -110,8 +111,8 @@ function CataloguePicker({ onPick, onClose }: CataloguePickerProps) {
       varianteProduitId: variante.id,
       designation,
       qte: '1',
+      unite: varianteUnite(variante),
       prixUnitaireHT: variante.prixHT.toFixed(4),
-      tauxTVA: String(variante.tauxTVA),
       remise: '0',
     })
     onClose()
@@ -172,7 +173,7 @@ function CataloguePicker({ onPick, onClose }: CataloguePickerProps) {
                         >
                           <span className="text-zinc-700">{varianteLabel(v)}</span>
                           <span className="text-xs text-zinc-400">
-                            {v.prixHT.toFixed(2).replace('.', ',')} € HT — TVA {v.tauxTVA}%
+                            {v.prixHT.toFixed(2).replace('.', ',')} € HT
                           </span>
                         </button>
                       ))}
@@ -190,7 +191,7 @@ function CataloguePicker({ onPick, onClose }: CataloguePickerProps) {
 
 // ─── Main form ────────────────────────────────────────────────────────────────
 
-export function FactureForm({ clients }: FactureFormProps) {
+export function BonLivraisonForm({ clients }: BonLivraisonFormProps) {
   const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [ventePreview, setVentePreview] = useState<VentePreview | null>(null)
@@ -214,13 +215,12 @@ export function FactureForm({ clients }: FactureFormProps) {
           varianteProduitId: '',
           designation: '',
           qte: '1',
+          unite: '',
           prixUnitaireHT: '',
-          tauxTVA: '20',
           remise: '0',
         },
       ],
       remiseCommerciale: '0',
-      dateEcheance: '',
       dateLivraison: '',
       notes: '',
       statut: 'BROUILLON',
@@ -237,16 +237,13 @@ export function FactureForm({ clients }: FactureFormProps) {
   const lignesComputed = lignes.map((l) => {
     const qte = parseFloat(l.qte) || 0
     const puHT = parseFloat(l.prixUnitaireHT) || 0
-    const tva = parseFloat(l.tauxTVA) || 0
     const remise = parseFloat(l.remise) || 0
-    const puHTRemise = roundFiscal(puHT * (1 - remise / 100))
-    const montantHT = roundFiscal(puHTRemise * qte)
-    const montantTVA = calcMontantTVA(montantHT, tva)
-    return { montantHT, montantTVA, montantTTC: roundFiscal(montantHT + montantTVA) }
+    const montantHT = roundFiscal(puHT * qte * (1 - remise / 100))
+    return { montantHT }
   })
 
-  const totalTTCBrut = roundFiscal(lignesComputed.reduce((s, l) => s + l.montantTTC, 0))
-  const totalTTC = roundFiscal(totalTTCBrut * remiseFactor)
+  const totalHTBrut = roundFiscal(lignesComputed.reduce((s, l) => s + l.montantHT, 0))
+  const totalHT = roundFiscal(totalHTBrut * remiseFactor)
 
   async function searchVente() {
     const ticket = watch('venteTicket')?.trim()
@@ -279,8 +276,8 @@ export function FactureForm({ clients }: FactureFormProps) {
           varianteProduitId?: string | null
           designation: string
           qte: number
+          unite?: string | null
           prixUnitaireHT: number
-          tauxTVA: number
           remise: number
         }>
 
@@ -300,11 +297,12 @@ export function FactureForm({ clients }: FactureFormProps) {
                   .filter(Boolean)
                   .join(' ')
               : (l.designation ?? '?')
+            const unite = v?.poids ? 'kg' : EMBALLAGE[v?.emballage ?? ''] || undefined
             return {
               designation,
               qte: Number(l.qte),
+              unite: unite ?? null,
               prixUnitaireHT: Number(l.prixUnitaireHT),
-              tauxTVA: Number(l.tauxTVA),
               remise: Number(l.remise) || 0,
             }
           })
@@ -313,8 +311,8 @@ export function FactureForm({ clients }: FactureFormProps) {
             varianteProduitId: l.varianteProduitId || null,
             designation: l.designation,
             qte: parseFloat(l.qte),
+            unite: l.unite || null,
             prixUnitaireHT: parseFloat(l.prixUnitaireHT),
-            tauxTVA: parseFloat(l.tauxTVA),
             remise: parseFloat(l.remise) || 0,
           }))
         }
@@ -324,13 +322,12 @@ export function FactureForm({ clients }: FactureFormProps) {
           venteId: values.mode === 'vente' && ventePreview ? ventePreview.id : null,
           lignes: lignesPayload,
           remiseCommerciale: parseFloat(values.remiseCommerciale) || 0,
-          dateEcheance: values.dateEcheance ? new Date(values.dateEcheance).toISOString() : null,
           dateLivraison: values.dateLivraison ? new Date(values.dateLivraison).toISOString() : null,
           notes: values.notes || null,
           statut: values.statut,
         }
 
-        const res = await fetch('/api/factures', {
+        const res = await fetch('/api/bons-livraison', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -343,8 +340,8 @@ export function FactureForm({ clients }: FactureFormProps) {
         }
 
         const { id } = await res.json()
-        toast.success('Facture créée')
-        navigate(`/dashboard/factures/${id}`)
+        toast.success('Bon de livraison créé')
+        navigate(`/dashboard/bons-livraison/${id}`)
       } catch {
         toast.error('Erreur réseau')
       }
@@ -362,12 +359,12 @@ export function FactureForm({ clients }: FactureFormProps) {
 
       <div className="flex items-center gap-3">
         <Link
-          to="/dashboard/factures"
+          to="/dashboard/bons-livraison"
           className={buttonVariants({ variant: 'ghost', size: 'icon' })}
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <h1 className="text-xl font-bold text-zinc-900">Nouvelle facture</h1>
+        <h1 className="text-xl font-bold text-zinc-900">Nouveau bon de livraison</h1>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -396,7 +393,7 @@ export function FactureForm({ clients }: FactureFormProps) {
               <Select
                 defaultValue="BROUILLON"
                 onValueChange={(v) =>
-                  setValue('statut', (v ?? 'BROUILLON') as 'BROUILLON' | 'EMISE')
+                  setValue('statut', (v ?? 'BROUILLON') as 'BROUILLON' | 'EMIS')
                 }
               >
                 <SelectTrigger>
@@ -404,22 +401,18 @@ export function FactureForm({ clients }: FactureFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="BROUILLON">Brouillon</SelectItem>
-                  <SelectItem value="EMISE">Émettre directement</SelectItem>
+                  <SelectItem value="EMIS">Émettre directement</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="dateLivraison">Date prestation / livraison</Label>
+              <Label htmlFor="dateLivraison">Date de livraison</Label>
               <Input id="dateLivraison" type="date" {...register('dateLivraison')} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="dateEcheance">Échéance (facultatif)</Label>
-              <Input id="dateEcheance" type="date" {...register('dateEcheance')} />
             </div>
           </div>
         </div>
 
-        {/* Source des lignes */}
+        {/* Source lignes */}
         <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex gap-2">
             {(['manuel', 'vente'] as const).map((m) => (
@@ -477,8 +470,7 @@ export function FactureForm({ clients }: FactureFormProps) {
                       : (l.designation ?? '?')
                     return (
                       <p key={i} className="text-xs text-green-700">
-                        {name} × {Number(l.qte)} —{' '}
-                        {Number(l.montantTTC).toFixed(2).replace('.', ',')} € TTC
+                        {name} × {Number(l.qte)}
                       </p>
                     )
                   })}
@@ -487,14 +479,14 @@ export function FactureForm({ clients }: FactureFormProps) {
             </div>
           ) : (
             <div className="space-y-3">
-              {/* En-têtes colonnes */}
+              {/* Column headers */}
               <div className="grid grid-cols-12 gap-2 text-xs font-medium text-zinc-500">
                 <span className="col-span-4">Désignation</span>
                 <span className="col-span-1 text-center">Qté</span>
+                <span className="col-span-2">Unité</span>
                 <span className="col-span-2 text-right">PU HT</span>
-                <span className="col-span-1 text-center">TVA</span>
                 <span className="col-span-1 text-center">Rem.</span>
-                <span className="col-span-2 text-right">TTC</span>
+                <span className="col-span-1 text-right">HT</span>
                 <span className="col-span-1" />
               </div>
 
@@ -506,7 +498,6 @@ export function FactureForm({ clients }: FactureFormProps) {
                       placeholder="Désignation"
                       className="h-8 text-sm"
                     />
-                    {/* hidden varianteProduitId */}
                     <input type="hidden" {...register(`lignes.${idx}.varianteProduitId`)} />
                   </div>
                   <Input
@@ -517,6 +508,11 @@ export function FactureForm({ clients }: FactureFormProps) {
                     className="col-span-1 h-8 text-center text-sm"
                   />
                   <Input
+                    {...register(`lignes.${idx}.unite`)}
+                    placeholder="kg"
+                    className="col-span-2 h-8 text-sm"
+                  />
+                  <Input
                     {...register(`lignes.${idx}.prixUnitaireHT`)}
                     type="number"
                     step="0.0001"
@@ -524,16 +520,6 @@ export function FactureForm({ clients }: FactureFormProps) {
                     placeholder="0.00"
                     className="col-span-2 h-8 text-right text-sm"
                   />
-                  <select
-                    {...register(`lignes.${idx}.tauxTVA`)}
-                    className="col-span-1 h-8 rounded-md border border-zinc-200 bg-white px-1 text-center text-sm"
-                  >
-                    {TVA_TAUX.map((t) => (
-                      <option key={t} value={t}>
-                        {t}%
-                      </option>
-                    ))}
-                  </select>
                   <Input
                     {...register(`lignes.${idx}.remise`)}
                     type="number"
@@ -543,8 +529,8 @@ export function FactureForm({ clients }: FactureFormProps) {
                     placeholder="0"
                     className="col-span-1 h-8 text-center text-sm"
                   />
-                  <div className="col-span-2 text-right text-sm font-medium text-zinc-700">
-                    {lignesComputed[idx]?.montantTTC.toFixed(2).replace('.', ',')} €
+                  <div className="col-span-1 text-right text-sm font-medium text-zinc-700">
+                    {lignesComputed[idx]?.montantHT.toFixed(2).replace('.', ',')}
                   </div>
                   <button
                     type="button"
@@ -565,8 +551,8 @@ export function FactureForm({ clients }: FactureFormProps) {
                       varianteProduitId: '',
                       designation: '',
                       qte: '1',
+                      unite: '',
                       prixUnitaireHT: '',
-                      tauxTVA: '20',
                       remise: '0',
                     })
                   }
@@ -604,10 +590,10 @@ export function FactureForm({ clients }: FactureFormProps) {
                 <div className="text-sm font-bold text-zinc-900">
                   {remisePct > 0 && (
                     <span className="mr-3 font-normal text-zinc-400 line-through">
-                      {totalTTCBrut.toFixed(2).replace('.', ',')} €
+                      {totalHTBrut.toFixed(2).replace('.', ',')} €
                     </span>
                   )}
-                  Total TTC : {totalTTC.toFixed(2).replace('.', ',')} €
+                  Total HT : {totalHT.toFixed(2).replace('.', ',')} €
                 </div>
               </div>
             </div>
@@ -623,12 +609,12 @@ export function FactureForm({ clients }: FactureFormProps) {
         </div>
 
         <div className="flex justify-end gap-3">
-          <Link to="/dashboard/factures" className={buttonVariants({ variant: 'ghost' })}>
+          <Link to="/dashboard/bons-livraison" className={buttonVariants({ variant: 'ghost' })}>
             Annuler
           </Link>
           <Button type="submit" disabled={isPending} className="gap-1.5">
             <Save className="h-4 w-4" />
-            {isPending ? 'Enregistrement…' : 'Créer la facture'}
+            {isPending ? 'Enregistrement…' : 'Créer le BL'}
           </Button>
         </div>
       </form>

@@ -3,10 +3,11 @@
 import { Link } from 'react-router-dom'
 import { useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/auth'
 import {
   LayoutDashboard,
   ShoppingBasket,
-  FileText,
+  Truck,
   BarChart3,
   Users,
   Settings,
@@ -28,6 +29,7 @@ type NavItem = {
   label: string
   icon: React.ElementType
   exact?: boolean
+  superAdminOnly?: boolean
 }
 
 const navGroups: { label?: string; items: NavItem[] }[] = [
@@ -45,7 +47,7 @@ const navGroups: { label?: string; items: NavItem[] }[] = [
       { href: '/dashboard/stock', label: 'Stock', icon: Warehouse },
       { href: '/dashboard/abonnements', label: 'AMAP', icon: Repeat2 },
       { href: '/dashboard/clients', label: 'Clients', icon: Building2 },
-      { href: '/dashboard/factures', label: 'Factures', icon: FileText },
+      { href: '/dashboard/bons-livraison', label: 'Bons de livraison', icon: Truck },
     ],
   },
   {
@@ -55,7 +57,7 @@ const navGroups: { label?: string; items: NavItem[] }[] = [
       { href: '/dashboard/clotures', label: 'Clôtures', icon: Lock },
       { href: '/dashboard/statistiques', label: 'Statistiques', icon: BarChart3 },
       { href: '/dashboard/vendeurs', label: 'Vendeurs', icon: Users },
-      { href: '/dashboard/audit', label: 'Audit', icon: ScrollText },
+      { href: '/dashboard/audit', label: 'Audit', icon: ScrollText, superAdminOnly: true },
     ],
   },
   {
@@ -70,6 +72,8 @@ const navGroups: { label?: string; items: NavItem[] }[] = [
 
 export function Sidebar() {
   const { pathname } = useLocation()
+  const { state } = useAuth()
+  const role = state.status === 'authenticated' ? state.user.role : null
 
   return (
     <aside className="border-sidebar-border bg-sidebar flex h-full w-60 shrink-0 flex-col border-r">
@@ -94,33 +98,35 @@ export function Sidebar() {
               </p>
             )}
             <ul className="space-y-0.5">
-              {group.items.map(({ href, label, icon: Icon, exact }) => {
-                const isActive = exact ? pathname === href : pathname.startsWith(href)
-                return (
-                  <li key={href}>
-                    <Link
-                      to={href}
-                      className={cn(
-                        'relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all duration-150',
-                        isActive
-                          ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-sm'
-                          : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground font-normal'
-                      )}
-                    >
-                      {isActive && (
-                        <span className="absolute top-1/2 left-0 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-green-600" />
-                      )}
-                      <Icon
+              {group.items
+                .filter((item) => !item.superAdminOnly || role === 'SUPERADMIN')
+                .map(({ href, label, icon: Icon, exact }) => {
+                  const isActive = exact ? pathname === href : pathname.startsWith(href)
+                  return (
+                    <li key={href}>
+                      <Link
+                        to={href}
                         className={cn(
-                          'h-4 w-4 shrink-0',
-                          isActive ? 'text-green-600' : 'text-sidebar-foreground/35'
+                          'relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all duration-150',
+                          isActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-sm'
+                            : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground font-normal'
                         )}
-                      />
-                      {label}
-                    </Link>
-                  </li>
-                )
-              })}
+                      >
+                        {isActive && (
+                          <span className="absolute top-1/2 left-0 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-green-600" />
+                        )}
+                        <Icon
+                          className={cn(
+                            'h-4 w-4 shrink-0',
+                            isActive ? 'text-green-600' : 'text-sidebar-foreground/35'
+                          )}
+                        />
+                        {label}
+                      </Link>
+                    </li>
+                  )
+                })}
             </ul>
           </div>
         ))}

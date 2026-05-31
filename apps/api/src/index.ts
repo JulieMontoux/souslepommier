@@ -13,7 +13,7 @@ import { ventesRouter } from "./routes/ventes.js";
 import { cloturesRouter } from "./routes/clotures.js";
 import { configRouter } from "./routes/config.js";
 import { usersRouter } from "./routes/users.js";
-import { facturesRouter } from "./routes/factures.js";
+import { bonsLivraisonRouter } from "./routes/bons-livraison.js";
 import { statsRouter } from "./routes/stats.js";
 import { auditRouter } from "./routes/audit.js";
 import { tauxTvaRouter } from "./routes/taux-tva.js";
@@ -21,6 +21,7 @@ import { rgpdRouter } from "./routes/rgpd.js";
 import { stockRouter } from "./routes/stock.js";
 import { abonnementsRouter } from "./routes/abonnements.js";
 import { pointsDeVenteRouter } from "./routes/points-de-vente.js";
+import { setupRouter } from "./routes/setup.js";
 
 const app = new Hono();
 
@@ -47,7 +48,7 @@ app.route("/api/ventes", ventesRouter);
 app.route("/api/clotures", cloturesRouter);
 app.route("/api/config", configRouter);
 app.route("/api/users", usersRouter);
-app.route("/api/factures", facturesRouter);
+app.route("/api/bons-livraison", bonsLivraisonRouter);
 app.route("/api/stats", statsRouter);
 app.route("/api/audit", auditRouter);
 app.route("/api/taux-tva", tauxTvaRouter);
@@ -55,6 +56,7 @@ app.route("/api/rgpd", rgpdRouter);
 app.route("/api/stock", stockRouter);
 app.route("/api/abonnements", abonnementsRouter);
 app.route("/api/points-de-vente", pointsDeVenteRouter);
+app.route("/api/setup", setupRouter);
 
 app.get("/health", (c) => c.json({ ok: true }));
 

@@ -18,9 +18,9 @@ const ClientEditPage = lazy(() => import('./pages/client-edit'))
 const VentesPage = lazy(() => import('./pages/ventes'))
 const CloturesPage = lazy(() => import('./pages/clotures'))
 const ClotureDetailPage = lazy(() => import('./pages/cloture-detail'))
-const FacturesPage = lazy(() => import('./pages/factures'))
-const FactureDetailPage = lazy(() => import('./pages/facture-detail'))
-const FactureNewPage = lazy(() => import('./pages/facture-new'))
+const BonsLivraisonPage = lazy(() => import('./pages/bons-livraison'))
+const BonLivraisonDetailPage = lazy(() => import('./pages/bon-livraison-detail'))
+const BonLivraisonNewPage = lazy(() => import('./pages/bon-livraison-new'))
 const StatistiquesPage = lazy(() => import('./pages/statistiques'))
 const ConfigPage = lazy(() => import('./pages/configuration'))
 const TvaPage = lazy(() => import('./pages/configuration-tva'))
@@ -57,6 +57,14 @@ function GerantGuard() {
     state.user.role !== 'SUPERADMIN'
   ) {
     return <Navigate to="/pos" replace />
+  }
+  return <Outlet />
+}
+
+function SuperAdminGuard() {
+  const { state } = useAuth()
+  if (state.status === 'authenticated' && state.user.role !== 'SUPERADMIN') {
+    return <Navigate to="/dashboard" replace />
   }
   return <Outlet />
 }
@@ -171,14 +179,19 @@ export default function App() {
             <Route path="/dashboard/stock" element={<StockPage />} />
             <Route path="/dashboard/clotures" element={<CloturesPage />} />
             <Route path="/dashboard/clotures/:id" element={<ClotureDetailPage />} />
-            <Route path="/dashboard/factures" element={<FacturesPage />} />
-            <Route path="/dashboard/factures/nouvelle" element={<FactureNewPage />} />
-            <Route path="/dashboard/factures/:id" element={<FactureDetailPage />} />
+            <Route path="/dashboard/bons-livraison" element={<BonsLivraisonPage />} />
+            <Route path="/dashboard/bons-livraison/nouveau" element={<BonLivraisonNewPage />} />
+            <Route path="/dashboard/bons-livraison/:id" element={<BonLivraisonDetailPage />} />
             <Route path="/dashboard/statistiques" element={<StatistiquesPage />} />
             <Route path="/dashboard/configuration" element={<ConfigPage />} />
             <Route path="/dashboard/configuration/tva" element={<TvaPage />} />
-            <Route path="/dashboard/audit" element={<AuditPage />} />
             <Route path="/dashboard/rgpd" element={<RgpdPage />} />
+          </Route>
+        </Route>
+
+        <Route element={<SuperAdminGuard />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard/audit" element={<AuditPage />} />
           </Route>
         </Route>
       </Route>

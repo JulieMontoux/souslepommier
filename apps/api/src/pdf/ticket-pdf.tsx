@@ -108,9 +108,8 @@ export function TicketDocument({ vente, config }: TicketDocumentProps) {
   return (
     <Document>
       <Page
-        size={{ width: W, height: undefined as unknown as number }}
+        size={[W, 1400]}
         style={s.page}
-        wrap
       >
         {config ? (
           <>
