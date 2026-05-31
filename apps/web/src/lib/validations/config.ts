@@ -32,7 +32,11 @@ export const configSchema = z.object({
   raisonSociale: z.string().min(1, 'Raison sociale requise').max(200),
   formeJuridique: z.string().optional(),
   capitalSocial: z.preprocess(
-    (v) => (v === '' || (typeof v === 'number' && isNaN(v)) ? undefined : Number(v)),
+    (v) => {
+      if (v === '' || v === null || v === undefined) return undefined
+      const n = Number(v)
+      return isNaN(n) ? undefined : n === 0 ? undefined : n
+    },
     z.number().positive('Doit être positif').optional()
   ),
   siret: siretSchema,
