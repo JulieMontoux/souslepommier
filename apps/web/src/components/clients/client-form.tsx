@@ -3,8 +3,6 @@
 import { useTransition } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -30,22 +28,20 @@ const CONDITIONS_OPTIONS = [
   { value: '60', label: '60 jours' },
 ]
 
-const formSchema = z.object({
-  raisonSociale: z.string().min(1, 'Requis').max(200),
-  siret: z.string().optional(),
-  tvaIntracommunautaire: z.string().optional(),
-  adresse: z.string().optional(),
-  codePostal: z.string().optional(),
-  ville: z.string().optional(),
-  pays: z.string().default('FR'),
-  email: z.string().optional(),
-  telephone: z.string().optional(),
-  conditionsPaiement: z.string().default('30'),
-  notes: z.string().optional(),
-  actif: z.boolean().default(true),
-})
-
-type FormValues = z.infer<typeof formSchema>
+type FormValues = {
+  raisonSociale: string
+  siret: string
+  tvaIntracommunautaire: string
+  adresse: string
+  codePostal: string
+  ville: string
+  pays: string
+  email: string
+  telephone: string
+  conditionsPaiement: string
+  notes: string
+  actif: boolean
+}
 
 interface ClientFormProps {
   client?: ClientComplet
@@ -63,7 +59,6 @@ export function ClientForm({ client }: ClientFormProps) {
     watch,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
     defaultValues: {
       raisonSociale: client?.raisonSociale ?? '',
       siret: client?.siret ?? '',
