@@ -15,11 +15,21 @@
 /coverage
 **/coverage/
 
-# next.js
+# next.js (artefacts — projet migré vers Vite)
 /.next/
 **/apps/web/.next/
 /out/
 **/out/
+# root Dockerfile obsolète (Next.js), remplacé par apps/api/Dockerfile + apps/web/Dockerfile
+/Dockerfile
+apps/web/next.config.ts
+apps/web/next-env.d.ts
+# SVGs boilerplate Next.js non utilisés
+apps/web/public/next.svg
+apps/web/public/vercel.svg
+apps/web/public/file.svg
+apps/web/public/globe.svg
+apps/web/public/window.svg
 
 # production
 /build
@@ -28,7 +38,17 @@ apps/api/dist/
 
 # misc
 .DS_Store
+Thumbs.db
 *.pem
+
+# éditeurs
+.idea/
+*.swp
+*.swo
+.vscode/settings.json
+
+# Vite cache
+**/.vite/
 
 # debug
 npm-debug.log*
@@ -36,8 +56,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
+!.env.example
 
 # vercel
 .vercel
