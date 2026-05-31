@@ -98,7 +98,20 @@ function CataloguePicker({ onPick, onClose }: CataloguePickerProps) {
 
   const { data: produits = [] } = useQuery<ProduitPOS[]>({
     queryKey: ['produits', 'pos'],
-    queryFn: () => api.get('/produits/pos'),
+    queryFn: () =>
+      api.get('/produits?actif=true&withVariantes=true').then((raw: unknown) =>
+        (raw as ProduitPOS[]).map((p) => ({
+          ...p,
+          variantes: (p.variantes as unknown as Array<ProduitPOSVariante & { tauxTVA: { taux: number } | number; actif?: boolean }>)
+            .filter((v) => v.actif !== false)
+            .map((v) => ({
+              ...v,
+              prixHT: Number(v.prixHT),
+              prixTTC: Number(v.prixTTC),
+              tauxTVA: typeof v.tauxTVA === 'object' ? Number((v.tauxTVA as { taux: number }).taux) : Number(v.tauxTVA),
+            })),
+        }))
+      ),
     staleTime: 60_000,
   })
 

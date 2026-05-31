@@ -23,13 +23,8 @@ export default function ProduitEditPage() {
     enabled: !!id,
   })
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => api.get<{ id: string; nom: string }[]>('/categories'),
-  })
-
   if (produitLoading) return <div className="bg-muted h-48 animate-pulse rounded-xl" />
   if (!produit) return <Navigate to="/dashboard/produits" replace />
 
-  return <ProduitForm produit={produit} categories={categories} />
+  return <ProduitForm produit={produit} />
 }

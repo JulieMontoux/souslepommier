@@ -20,10 +20,5 @@ export default function ProduitsPage() {
       ),
   })
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => api.get<{ id: string; nom: string }[]>('/categories'),
-  })
-
-  return <ProduitsList produits={produits} categories={categories} />
+  return <ProduitsList produits={produits} />
 }

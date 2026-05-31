@@ -16,7 +16,6 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { TYPE_EMBALLAGE } from '@/lib/validations/produit'
 import type { ProduitComplet } from '@/types/produits'
-import type { Categorie } from '@souslepommier/database'
 
 type TauxTVAItem = { id: string; libelle: string; taux: number; defaut: boolean; actif: boolean }
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -60,7 +59,6 @@ const varianteRowSchema = z.object({
 
 const formSchema = z.object({
   nom: z.string().min(1, 'Nom requis').max(100),
-  categorieId: z.string().optional(),
   description: z.string().max(500).optional(),
   actif: z.boolean().default(true),
   saisonDebutMois: z.number().int().min(1).max(12).nullable().optional(),
@@ -76,7 +74,6 @@ type FormValues = z.infer<typeof formSchema>
 
 interface ProduitFormProps {
   produit?: ProduitComplet | null
-  categories: Categorie[]
 }
 
 const EMBALLAGE_LABELS: Record<string, string> = {
@@ -399,7 +396,7 @@ function PaliersSection({
   )
 }
 
-export function ProduitForm({ produit, categories }: ProduitFormProps) {
+export function ProduitForm({ produit }: ProduitFormProps) {
   const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [saving, setSaving] = useState(false)
@@ -436,7 +433,6 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
     defaultValues: {
       nom: produit?.nom ?? '',
-      categorieId: produit?.categorieId ?? undefined,
       description: produit?.description ?? '',
       actif: produit?.actif ?? true,
       saisonDebutMois: produit?.saisonDebutMois ?? null,
@@ -559,7 +555,6 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
       // 1. Créer ou mettre à jour le produit
       const produitPayload = {
         nom: data.nom,
-        categorieId: data.categorieId || null,
         description: data.description || null,
         image: null,
         actif: data.actif,
@@ -690,31 +685,6 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
             </Label>
             <Input id="nom" {...register('nom')} placeholder="Ex: Pomme Golden" />
             {fieldError(errors.nom?.message)}
-          </div>
-
-          <div>
-            <Label htmlFor="categorieId">Catégorie</Label>
-            <Select
-              defaultValue={produit?.categorieId ?? ''}
-              onValueChange={(v) => setValue('categorieId', v || undefined)}
-            >
-              <SelectTrigger id="categorieId">
-                <span className="flex-1 text-left text-sm">
-                  {watch('categorieId')
-                    ? (categories.find((c) => c.id === watch('categorieId'))?.nom ??
-                      'Sans catégorie')
-                    : 'Sélectionner…'}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Sans catégorie</SelectItem>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nom}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="flex items-center gap-3 pt-6">
