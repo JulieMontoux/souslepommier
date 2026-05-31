@@ -13,6 +13,7 @@ datasource db {
 // ─── Enum ───────────────────────────────────────────────────────────────────
 
 enum Role {
+  SUPERADMIN
   GERANT
   VENDEUR
 }
@@ -78,7 +79,8 @@ enum StatutLivraison {
 
 model User {
   id              String   @id @default(cuid())
-  email           String   @unique
+  username        String   @unique
+  email           String?  @unique
   nom             String
   prenom          String
   role            Role     @default(VENDEUR)
@@ -90,12 +92,27 @@ model User {
   rgpdConsent     Boolean  @default(false)
   rgpdConsentDate DateTime?
 
-  ventes           Vente[]
-  clotures         ClotureCaisse[]
-  auditActions     JournalAudit[]
-  mouvementsStock  MouvementStock[]
+  ventes               Vente[]
+  clotures             ClotureCaisse[]
+  auditActions         JournalAudit[]
+  mouvementsStock      MouvementStock[]
+  passwordResetTokens  PasswordResetToken[]
 
   @@map("users")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 // ─── Produits ─────────────────────────────────────────────────────────────────
@@ -180,11 +197,13 @@ model Vente {
   hashPrecedent String?
   motifAnnulation  String?
   pointDeVenteId   String?
+  clientId         String?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
   vendeur      User          @relation(fields: [vendeurId], references: [id])
   pointDeVente PointDeVente? @relation(fields: [pointDeVenteId], references: [id])
+  client       Client?       @relation(fields: [clientId], references: [id])
   lignes       LigneVente[]
   paiements    Paiement[]
   factures     Facture[]
@@ -307,6 +326,7 @@ model Client {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
+  ventes       Vente[]
   factures     Facture[]
   abonnements  Abonnement[]
 

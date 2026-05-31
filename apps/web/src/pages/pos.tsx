@@ -9,6 +9,7 @@ import type { ConfigTicket } from '@/types/ticket'
 const PDV_STORAGE_KEY = 'pos_pdv_id'
 
 type PointDeVente = { id: string; nom: string; actif: boolean }
+type ClientPOS = { id: string; raisonSociale: string }
 
 type ConfigApi = {
   raisonSociale: string
@@ -31,6 +32,12 @@ export default function PosPage() {
     queryKey: ['points-de-vente'],
     queryFn: () => api.get('/points-de-vente?actif=true'),
     staleTime: 60_000,
+  })
+
+  const { data: clients = [] } = useQuery<ClientPOS[]>({
+    queryKey: ['clients-pos'],
+    queryFn: () => api.get('/clients?actif=true&limit=200'),
+    staleTime: 120_000,
   })
 
   useEffect(() => {
@@ -141,6 +148,7 @@ export default function PosPage() {
         isCloturee={clotureStatut?.isCloturee ?? false}
         onReouverture={() => refetchStatut()}
         pointDeVenteId={pointDeVenteId || undefined}
+        clients={clients}
       />
     </>
   )

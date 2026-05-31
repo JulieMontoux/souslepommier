@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/auth'
 import { toast } from 'sonner'
-import { LogOut, Leaf, Package } from 'lucide-react'
+import { LogOut, Leaf, Package, UserRound, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { recapTVA, roundFiscal, calcMontantTVA } from '@/lib/tva'
@@ -42,6 +42,8 @@ function buildVarianteLabel(v: ProduitPOSVariante): string {
   return parts.join(' · ')
 }
 
+type ClientPOS = { id: string; raisonSociale: string }
+
 interface POSInterfaceProps {
   produits: ProduitPOS[]
   user: { id: string; prenom: string; nom: string; role: string }
@@ -49,6 +51,7 @@ interface POSInterfaceProps {
   isCloturee: boolean
   onReouverture: () => void
   pointDeVenteId?: string
+  clients?: ClientPOS[]
 }
 
 export function POSInterface({
@@ -58,6 +61,7 @@ export function POSInterface({
   isCloturee,
   onReouverture,
   pointDeVenteId,
+  clients = [],
 }: POSInterfaceProps) {
   const navigate = useNavigate()
   const { logout } = useAuth()
@@ -85,6 +89,25 @@ export function POSInterface({
     }
   }
 
+  const [clientId, setClientId] = useState<string | null>(null)
+  const [clientSearch, setClientSearch] = useState('')
+  const [clientOpen, setClientOpen] = useState(false)
+
+  useEffect(() => {
+    if (!clientOpen) return
+    function close(e: MouseEvent) {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-client-picker]')) setClientOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [clientOpen])
+
+  const selectedClient = clients.find((c) => c.id === clientId) ?? null
+  const filteredClients = clientSearch.trim()
+    ? clients.filter((c) => c.raisonSociale.toLowerCase().includes(clientSearch.toLowerCase()))
+    : clients
+
   const [cart, setCart] = useState<LigneCart[]>(() => {
     try {
       const saved = localStorage.getItem('pos-cart')
@@ -101,6 +124,7 @@ export function POSInterface({
   const [confirming, setConfirming] = useState(false)
   const [saving, setSaving] = useState(false)
   const [lastVente, setLastVente] = useState<{ id: string; numeroTicket: string } | null>(null)
+  const [showTicket, setShowTicket] = useState(false)
 
   useEffect(() => {
     localStorage.setItem('pos-cart', JSON.stringify(cart))
@@ -191,8 +215,9 @@ export function POSInterface({
       setCart((prev) =>
         prev.map((l) => {
           if (l.key !== key) return l
-          const palierRemise = getBestRemise(l.varianteProduitId, qte)
-          return { ...l, qte, remise: palierRemise > 0 ? palierRemise : (l.remise ?? 0) }
+          const safeQte = l.venteAuPoids ? qte : Math.round(qte)
+          const palierRemise = getBestRemise(l.varianteProduitId, safeQte)
+          return { ...l, qte: safeQte, remise: palierRemise > 0 ? palierRemise : (l.remise ?? 0) }
         })
       )
     }
@@ -302,6 +327,7 @@ export function POSInterface({
       })),
       paiements,
       ...(pointDeVenteId && { pointDeVenteId }),
+      ...(clientId && { clientId }),
     }
 
     if (!online) {
@@ -328,6 +354,8 @@ export function POSInterface({
       const vente = await res.json()
       setLastVente({ id: vente.id, numeroTicket: vente.numeroTicket })
       setCart([])
+      setClientId(null)
+      setClientSearch('')
       setConfirming(false)
       void queryClient.invalidateQueries({ queryKey: ['produits', 'pos'] })
     } catch {
@@ -412,6 +440,69 @@ export function POSInterface({
             <Package className="h-4 w-4" />
             Produits
           </Link>
+
+          {/* Client selector */}
+          {clients.length > 0 && (
+            <div className="relative" data-client-picker>
+              {selectedClient ? (
+                <div className="flex items-center gap-1.5 rounded-md bg-green-600/20 px-2 py-1 text-xs text-green-400">
+                  <UserRound className="h-3.5 w-3.5" />
+                  <span className="max-w-[120px] truncate">{selectedClient.raisonSociale}</span>
+                  <button
+                    onClick={() => {
+                      setClientId(null)
+                      setClientSearch('')
+                    }}
+                    className="hover:text-green-300"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setClientOpen((o) => !o)}
+                  className="text-sidebar-foreground/60 hover:text-sidebar-foreground flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors"
+                >
+                  <UserRound className="h-4 w-4" />
+                  Client
+                </button>
+              )}
+              {clientOpen && !selectedClient && (
+                <div className="bg-card border-border absolute top-full right-0 z-50 mt-1 w-64 rounded-lg border shadow-lg">
+                  <div className="p-2">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      placeholder="Rechercher un client…"
+                      className="border-border bg-background text-foreground w-full rounded-md border px-2 py-1.5 text-sm focus:outline-none"
+                    />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto">
+                    {filteredClients.length === 0 ? (
+                      <p className="text-muted-foreground px-3 py-2 text-xs">Aucun résultat</p>
+                    ) : (
+                      filteredClients.slice(0, 30).map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => {
+                            setClientId(c.id)
+                            setClientOpen(false)
+                            setClientSearch('')
+                          }}
+                          className="hover:bg-muted w-full truncate px-3 py-2 text-left text-sm"
+                        >
+                          {c.raisonSociale}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <span className="text-sidebar-foreground/70 text-sm">
             {user.prenom} {user.nom}
           </span>
@@ -446,7 +537,11 @@ export function POSInterface({
           tvaRecap={tvaRecap}
           config={config}
           lastVente={lastVente}
-          setLastVente={setLastVente}
+          onPrintTicket={() => setShowTicket(true)}
+          onNouvelleVente={() => {
+            setLastVente(null)
+            setShowTicket(false)
+          }}
         />
       </div>
 
@@ -469,13 +564,13 @@ export function POSInterface({
         />
       )}
 
-      {/* Ticket après vente */}
-      {lastVente && (
+      {/* Ticket à la demande */}
+      {showTicket && lastVente && (
         <TicketModal
           venteId={lastVente.id}
           venteNumero={lastVente.numeroTicket}
           config={config}
-          onClose={() => setLastVente(null)}
+          onClose={() => setShowTicket(false)}
         />
       )}
 

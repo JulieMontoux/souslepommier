@@ -8,16 +8,33 @@ import { logAudit } from "../lib/audit.js";
 import { sendWelcomeEmail, sendResetPasswordEmail } from "../lib/email.js";
 
 const userCreateSchema = z.object({
-  email: z.string().email(),
+  username: z
+    .string()
+    .min(1)
+    .max(50)
+    .regex(
+      /^[a-z0-9._-]+$/,
+      "Identifiants valides : lettres minuscules, chiffres, . _ -",
+    ),
+  email: z.preprocess(
+    (v) => (v === "" ? null : v),
+    z.string().email().optional().nullable(),
+  ),
   prenom: z.string().min(1).max(50),
   nom: z.string().min(1).max(50),
   role: z.enum(["VENDEUR", "GERANT"]).default("VENDEUR"),
 });
 
 const userUpdateSchema = z.object({
+  username: z
+    .string()
+    .min(1)
+    .max(50)
+    .regex(/^[a-z0-9._-]+$/)
+    .optional(),
   prenom: z.string().min(1).max(50).optional(),
   nom: z.string().min(1).max(50).optional(),
-  email: z.string().email().optional(),
+  email: z.string().email().optional().nullable(),
   role: z.enum(["VENDEUR", "GERANT"]).optional(),
 });
 
@@ -32,6 +49,7 @@ usersRouter.get("/", async (c) => {
     orderBy: [{ actif: "desc" }, { nom: "asc" }],
     select: {
       id: true,
+      username: true,
       email: true,
       prenom: true,
       nom: true,
@@ -51,6 +69,7 @@ usersRouter.get("/", async (c) => {
   return c.json(
     users.map((u) => ({
       id: u.id,
+      username: u.username,
       email: u.email,
       prenom: u.prenom,
       nom: u.nom,
@@ -64,6 +83,7 @@ usersRouter.get("/", async (c) => {
 });
 
 usersRouter.post("/", async (c) => {
+  const caller = c.get("user");
   const body = await c.req.json().catch(() => null);
   const parsed = userCreateSchema.safeParse(body);
   if (!parsed.success)
@@ -72,19 +92,34 @@ usersRouter.post("/", async (c) => {
       422,
     );
 
-  const { email, prenom, nom, role } = parsed.data;
-  const existing = await prisma.user.findUnique({
-    where: { email },
+  const { username, email, prenom, nom, role } = parsed.data;
+
+  // GERANT can only create VENDEUR; SUPERADMIN can create GERANT or VENDEUR
+  if (caller.role !== "SUPERADMIN" && role === "GERANT")
+    return c.json({ error: "Accès refusé" }, 403);
+
+  const existingUsername = await prisma.user.findUnique({
+    where: { username },
     select: { id: true },
   });
-  if (existing) return c.json({ error: "Email déjà utilisé" }, 409);
+  if (existingUsername)
+    return c.json({ error: "Identifiant déjà utilisé" }, 409);
+
+  if (email) {
+    const existingEmail = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+    if (existingEmail) return c.json({ error: "Email déjà utilisé" }, 409);
+  }
 
   const password = randomBytes(6).toString("base64url").slice(0, 10);
   const passwordHash = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
-    data: { email, prenom, nom, role, passwordHash },
+    data: { username, email: email ?? null, prenom, nom, role, passwordHash },
     select: {
       id: true,
+      username: true,
       email: true,
       prenom: true,
       nom: true,
@@ -98,10 +133,10 @@ usersRouter.post("/", async (c) => {
     action: "CREATE_USER",
     entite: "User",
     entiteId: user.id,
-    nouvelleValeur: { email, prenom, nom, role },
+    nouvelleValeur: { username, email, prenom, nom, role },
   });
   try {
-    await sendWelcomeEmail(email, prenom, password);
+    if (email) await sendWelcomeEmail(email, prenom, password);
   } catch {
     /* non-bloquant */
   }
@@ -121,6 +156,7 @@ usersRouter.get("/:id", async (c) => {
     where: { id },
     select: {
       id: true,
+      username: true,
       email: true,
       prenom: true,
       nom: true,
@@ -178,6 +214,13 @@ usersRouter.put("/:id", async (c) => {
   });
   if (!existing) return c.json({ error: "Utilisateur introuvable" }, 404);
 
+  if (parsed.data.username) {
+    const taken = await prisma.user.findFirst({
+      where: { username: parsed.data.username, NOT: { id } },
+      select: { id: true },
+    });
+    if (taken) return c.json({ error: "Identifiant déjà utilisé" }, 409);
+  }
   if (parsed.data.email) {
     const taken = await prisma.user.findFirst({
       where: { email: parsed.data.email, NOT: { id } },
@@ -231,7 +274,13 @@ usersRouter.post("/:id/reset-password", async (c) => {
   const id = c.req.param("id");
   const target = await prisma.user.findUnique({
     where: { id },
-    select: { id: true, email: true, prenom: true, actif: true },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      prenom: true,
+      actif: true,
+    },
   });
   if (!target) return c.json({ error: "Utilisateur introuvable" }, 404);
   if (!target.actif) return c.json({ error: "Utilisateur inactif" }, 409);
@@ -246,13 +295,14 @@ usersRouter.post("/:id/reset-password", async (c) => {
     action: "RESET_PASSWORD",
     entite: "User",
     entiteId: id,
-    nouvelleValeur: {},
+    nouvelleValeur: { username: target.username },
   });
   try {
-    await sendResetPasswordEmail(target.email, target.prenom, password);
+    if (target.email)
+      await sendResetPasswordEmail(target.email, target.prenom, password);
   } catch {
     /* non-bloquant */
   }
 
-  return c.json({ ok: true });
+  return c.json({ password, emailSent: !!target.email });
 });

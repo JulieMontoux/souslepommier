@@ -68,6 +68,20 @@ export async function sendResetPasswordEmail(
   });
 }
 
+export async function sendForgotPasswordEmail(
+  to: string,
+  prenom: string,
+  resetUrl: string,
+) {
+  const [transport, from] = await Promise.all([getTransport(), getFrom()]);
+  await transport.sendMail({
+    from,
+    to,
+    subject: "Réinitialisation de mot de passe — Sous le Pommier",
+    text: `Bonjour ${prenom},\n\nVous avez demandé la réinitialisation de votre mot de passe.\n\nCliquez sur le lien ci-dessous (valable 1 heure) :\n${resetUrl}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email.\n\nCordialement,\nSous le Pommier`,
+  });
+}
+
 export async function sendTestEmail(to: string) {
   const [transport, from] = await Promise.all([getTransport(), getFrom()]);
   await transport.sendMail({

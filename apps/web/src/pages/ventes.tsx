@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams, Link } from 'react-router-dom'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
-import { ShoppingBasket, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ShoppingBasket, ChevronLeft, ChevronRight, Plus, Trash2, X, UserRound } from 'lucide-react'
+import { toast } from 'sonner'
 
 const STATUT_LABELS: Record<
   string,
@@ -33,6 +34,7 @@ type VenteSummary = {
   totalTTC: number
   vendeur: { id: string; prenom: string; nom: string }
   paiements: { mode: string; montant: number }[]
+  client: { id: string; raisonSociale: string } | null
   _count: { lignes: number }
 }
 
@@ -61,6 +63,12 @@ export default function VentesPage() {
   const [statut, setStatut] = useState(() => searchParams.get('statut') ?? '')
   const [pointDeVenteId, setPointDeVenteId] = useState('')
   const [page, setPage] = useState(1)
+  const [annulerId, setAnnulerId] = useState<string | null>(null)
+  const [motif, setMotif] = useState('')
+  const [annulerPending, setAnnulerPending] = useState(false)
+  const [detachClientId, setDetachClientId] = useState<string | null>(null)
+  const [detachPending, setDetachPending] = useState(false)
+  const queryClient = useQueryClient()
 
   const params = new URLSearchParams({ limit: String(LIMIT), page: String(page) })
   if (from) params.set('from', new Date(from).toISOString())
@@ -96,6 +104,39 @@ export default function VentesPage() {
   function handleFilter(cb: () => void) {
     cb()
     setPage(1)
+  }
+
+  async function confirmAnnuler() {
+    if (!annulerId) return
+    setAnnulerPending(true)
+    try {
+      await api.post(`/ventes/${annulerId}/annuler`, { motif: motif.trim() || undefined })
+      toast.success('Vente annulée')
+      setAnnulerId(null)
+      setMotif('')
+      void queryClient.invalidateQueries({ queryKey: ['ventes'] })
+    } catch (err) {
+      if (err instanceof ApiError) toast.error(err.message || 'Erreur')
+      else toast.error('Erreur serveur')
+    } finally {
+      setAnnulerPending(false)
+    }
+  }
+
+  async function confirmDetachClient() {
+    if (!detachClientId) return
+    setDetachPending(true)
+    try {
+      await api.patch(`/ventes/${detachClientId}/client`, { clientId: null })
+      toast.success('Client dissocié')
+      setDetachClientId(null)
+      void queryClient.invalidateQueries({ queryKey: ['ventes'] })
+    } catch (err) {
+      if (err instanceof ApiError) toast.error(err.message || 'Erreur')
+      else toast.error('Erreur serveur')
+    } finally {
+      setDetachPending(false)
+    }
   }
 
   return (
@@ -199,12 +240,14 @@ export default function VentesPage() {
                   <th className="text-muted-foreground px-4 py-3 text-left font-medium">
                     Paiements
                   </th>
+                  <th className="text-muted-foreground px-4 py-3 text-left font-medium">Client</th>
                   <th className="text-muted-foreground px-4 py-3 text-right font-medium">
                     Total TTC
                   </th>
                   <th className="text-muted-foreground px-4 py-3 text-center font-medium">
                     Statut
                   </th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-border divide-y">
@@ -251,11 +294,46 @@ export default function VentesPage() {
                           ))}
                         </div>
                       </td>
+                      <td className="px-4 py-3">
+                        {v.client ? (
+                          <div className="flex items-center gap-1">
+                            <UserRound className="text-muted-foreground h-3 w-3 shrink-0" />
+                            <span className="text-foreground max-w-[120px] truncate text-xs">
+                              {v.client.raisonSociale}
+                            </span>
+                            {v.statut === 'FINALISEE' && (
+                              <button
+                                onClick={() => setDetachClientId(v.id)}
+                                className="text-muted-foreground hover:text-destructive ml-0.5 rounded p-0.5 transition-colors"
+                                title="Dissocier le client (anonymiser)"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </td>
                       <td className="text-foreground px-4 py-3 text-right font-semibold tabular-nums">
                         {fmt(Number(v.totalTTC))}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <Badge variant={statutLabel.variant}>{statutLabel.label}</Badge>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {v.statut === 'FINALISEE' && (
+                          <button
+                            onClick={() => {
+                              setAnnulerId(v.id)
+                              setMotif('')
+                            }}
+                            className="text-muted-foreground hover:text-destructive rounded p-1 transition-colors"
+                            title="Annuler la vente"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   )
@@ -290,6 +368,94 @@ export default function VentesPage() {
             </div>
           )}
         </>
+      )}
+      {/* Confirm annulation dialog */}
+      {annulerId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="bg-card border-border w-full max-w-sm rounded-xl border p-6 shadow-xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-foreground font-semibold">Annuler la vente ?</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Action irréversible — la vente passera en statut Annulée.
+                </p>
+              </div>
+              <button
+                onClick={() => setAnnulerId(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mb-4">
+              <label className="text-muted-foreground mb-1 block text-xs font-medium">
+                Motif (optionnel)
+              </label>
+              <input
+                type="text"
+                value={motif}
+                onChange={(e) => setMotif(e.target.value)}
+                placeholder="Ex : erreur de caisse, retour client…"
+                className="border-border bg-background text-foreground w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setAnnulerId(null)}
+                disabled={annulerPending}
+                className="border-border bg-card hover:bg-muted flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmAnnuler}
+                disabled={annulerPending}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+              >
+                {annulerPending ? 'En cours…' : 'Confirmer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm detach client dialog */}
+      {detachClientId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="bg-card border-border w-full max-w-sm rounded-xl border p-6 shadow-xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-foreground font-semibold">Dissocier le client ?</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Le client sera retiré de cette vente. La vente reste dans l'historique.
+                </p>
+              </div>
+              <button
+                onClick={() => setDetachClientId(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDetachClientId(null)}
+                disabled={detachPending}
+                className="border-border bg-card hover:bg-muted flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmDetachClient}
+                disabled={detachPending}
+                className="flex-1 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700 disabled:opacity-60"
+              >
+                {detachPending ? 'En cours…' : 'Dissocier'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

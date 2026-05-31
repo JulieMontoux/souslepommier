@@ -9,6 +9,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { UserSummary } from '@/types/user'
+import { useAuth } from '@/contexts/auth'
 
 function fmtDate(iso: string | null) {
   if (!iso) return '—'
@@ -25,14 +26,17 @@ interface VendeurListProps {
 
 export function VendeurList({ users }: VendeurListProps) {
   const navigate = useNavigate()
+  const { state } = useAuth()
+  const isSuperAdmin = state.status === 'authenticated' && state.user.role === 'SUPERADMIN'
   const [isPending, startTransition] = useTransition()
   const [showAddModal, setShowAddModal] = useState(false)
   const [form, setForm] = useState<{
+    username: string
     prenom: string
     nom: string
     email: string
     role: 'VENDEUR' | 'GERANT'
-  }>({ prenom: '', nom: '', email: '', role: 'VENDEUR' })
+  }>({ username: '', prenom: '', nom: '', email: '', role: 'VENDEUR' })
   const [confirmDesactiver, setConfirmDesactiver] = useState<UserSummary | null>(null)
 
   function handleToggle(user: UserSummary) {
@@ -63,19 +67,20 @@ export function VendeurList({ users }: VendeurListProps) {
 
   function handleAdd() {
     startTransition(async () => {
+      const payload = { ...form, email: form.email.trim() || undefined }
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) {
         toast.error((data as { error?: string }).error ?? 'Erreur')
         return
       }
-      toast.success(`Compte créé — email envoyé à ${form.email}`)
+      toast.success(`Compte créé — identifiant : ${form.username}`)
       setShowAddModal(false)
-      setForm({ prenom: '', nom: '', email: '', role: 'VENDEUR' })
+      setForm({ username: '', prenom: '', nom: '', email: '', role: 'VENDEUR' })
       window.location.reload()
     })
   }
@@ -107,7 +112,7 @@ export function VendeurList({ users }: VendeurListProps) {
               <thead>
                 <tr className="border-b border-zinc-100 text-xs font-medium tracking-wide text-zinc-500 uppercase">
                   <th className="px-4 py-3 text-left">Nom</th>
-                  <th className="px-4 py-3 text-left">Email</th>
+                  <th className="px-4 py-3 text-left">Identifiant</th>
                   <th className="px-4 py-3 text-left">Rôle</th>
                   <th className="px-4 py-3 text-right">Ventes / mois</th>
                   <th className="px-4 py-3 text-left">Dernière connexion</th>
@@ -121,10 +126,22 @@ export function VendeurList({ users }: VendeurListProps) {
                     <td className="px-4 py-3 font-medium text-zinc-900">
                       {u.prenom} {u.nom}
                     </td>
-                    <td className="px-4 py-3 text-zinc-500">{u.email}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-zinc-500">{u.username}</td>
                     <td className="px-4 py-3">
-                      <Badge variant={u.role === 'GERANT' ? 'default' : 'secondary'}>
-                        {u.role === 'GERANT' ? 'Gérant' : 'Vendeur'}
+                      <Badge
+                        variant={
+                          u.role === 'SUPERADMIN'
+                            ? 'destructive'
+                            : u.role === 'GERANT'
+                              ? 'default'
+                              : 'secondary'
+                        }
+                      >
+                        {u.role === 'SUPERADMIN'
+                          ? 'Super Admin'
+                          : u.role === 'GERANT'
+                            ? 'Gérant'
+                            : 'Vendeur'}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-right text-zinc-600">{u.nbVentesMois}</td>
@@ -176,6 +193,23 @@ export function VendeurList({ users }: VendeurListProps) {
               </p>
             </div>
             <div className="space-y-3 px-6 py-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-600">
+                  Identifiant{' '}
+                  <span className="text-zinc-400">(lettres minuscules, chiffres, . _ -)</span>
+                </label>
+                <input
+                  type="text"
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  value={form.username}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, username: e.target.value.toLowerCase() }))
+                  }
+                  placeholder="prenom.nom"
+                  className="w-full rounded-md border border-zinc-200 px-3 py-2 font-mono text-sm focus:border-zinc-400 focus:outline-none"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-zinc-600">Prénom</label>
@@ -197,7 +231,12 @@ export function VendeurList({ users }: VendeurListProps) {
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-600">Email</label>
+                <label className="mb-1 block text-xs font-medium text-zinc-600">
+                  Email{' '}
+                  <span className="text-zinc-400">
+                    (optionnel — pour recevoir les identifiants)
+                  </span>
+                </label>
                 <input
                   type="email"
                   value={form.email}
@@ -215,7 +254,7 @@ export function VendeurList({ users }: VendeurListProps) {
                   className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:border-zinc-400 focus:outline-none"
                 >
                   <option value="VENDEUR">Vendeur</option>
-                  <option value="GERANT">Gérant</option>
+                  {isSuperAdmin && <option value="GERANT">Gérant</option>}
                 </select>
               </div>
             </div>
@@ -225,7 +264,7 @@ export function VendeurList({ users }: VendeurListProps) {
               </Button>
               <Button
                 onClick={handleAdd}
-                disabled={isPending || !form.prenom || !form.nom || !form.email}
+                disabled={isPending || !form.username || !form.prenom || !form.nom}
                 className="gap-1.5"
               >
                 <Plus className="h-4 w-4" />

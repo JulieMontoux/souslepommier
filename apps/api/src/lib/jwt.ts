@@ -8,8 +8,8 @@ const MAX_AGE = parseInt(process.env.SESSION_MAX_AGE ?? "28800");
 
 export type JwtPayload = {
   id: string;
-  email: string;
-  role: "GERANT" | "VENDEUR";
+  username: string;
+  role: "SUPERADMIN" | "GERANT" | "VENDEUR";
   nom: string;
   prenom: string;
 };

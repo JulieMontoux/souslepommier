@@ -28,11 +28,14 @@ const AuditPage = lazy(() => import('./pages/audit'))
 const RgpdPage = lazy(() => import('./pages/rgpd'))
 const PosPage = lazy(() => import('./pages/pos'))
 const LegalRgpdPage = lazy(() => import('./pages/legal-rgpd'))
+const SetupPage = lazy(() => import('./pages/setup'))
 const PrixBulkPage = lazy(() => import('./pages/prix-bulk'))
 const StockPage = lazy(() => import('./pages/stock'))
 const VenteManuellePage = lazy(() => import('./pages/vente-manuelle'))
 const AbonnementsPage = lazy(() => import('./pages/abonnements'))
 const PointsDeVentePage = lazy(() => import('./pages/points-de-vente'))
+const ForgotPasswordPage = lazy(() => import('./pages/forgot-password'))
+const ResetPasswordPage = lazy(() => import('./pages/reset-password'))
 
 const PageLoader = () => <div className="bg-muted m-6 h-full animate-pulse rounded-xl" />
 
@@ -48,7 +51,11 @@ function AuthGuard() {
 
 function GerantGuard() {
   const { state } = useAuth()
-  if (state.status === 'authenticated' && state.user.role !== 'GERANT') {
+  if (
+    state.status === 'authenticated' &&
+    state.user.role !== 'GERANT' &&
+    state.user.role !== 'SUPERADMIN'
+  ) {
     return <Navigate to="/pos" replace />
   }
   return <Outlet />
@@ -84,7 +91,7 @@ export default function App() {
         path="/login"
         element={
           state.status === 'authenticated' ? (
-            <Navigate to={state.user.role === 'GERANT' ? '/dashboard' : '/pos'} replace />
+            <Navigate to={state.user.role === 'VENDEUR' ? '/pos' : '/dashboard'} replace />
           ) : (
             <Suspense fallback={<PageLoader />}>
               <LoginPage />
@@ -98,6 +105,33 @@ export default function App() {
         element={
           <Suspense fallback={<PageLoader />}>
             <LegalRgpdPage />
+          </Suspense>
+        }
+      />
+
+      <Route
+        path="/setup"
+        element={
+          <Suspense fallback={<PageLoader />}>
+            <SetupPage />
+          </Suspense>
+        }
+      />
+
+      <Route
+        path="/forgot-password"
+        element={
+          <Suspense fallback={<PageLoader />}>
+            <ForgotPasswordPage />
+          </Suspense>
+        }
+      />
+
+      <Route
+        path="/reset-password"
+        element={
+          <Suspense fallback={<PageLoader />}>
+            <ResetPasswordPage />
           </Suspense>
         }
       />
@@ -157,7 +191,7 @@ export default function App() {
           ) : state.status === 'unauthenticated' ? (
             <Navigate to="/login" replace />
           ) : (
-            <Navigate to={state.user.role === 'GERANT' ? '/dashboard' : '/pos'} replace />
+            <Navigate to={state.user.role === 'VENDEUR' ? '/pos' : '/dashboard'} replace />
           )
         }
       />

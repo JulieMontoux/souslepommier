@@ -1,9 +1,10 @@
 export type UserSummary = {
   id: string
-  email: string
+  username: string
+  email: string | null
   prenom: string
   nom: string
-  role: 'VENDEUR' | 'GERANT'
+  role: 'SUPERADMIN' | 'GERANT' | 'VENDEUR'
   actif: boolean
   lastLoginAt: string | null
   createdAt: string
