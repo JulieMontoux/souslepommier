@@ -19,6 +19,7 @@ import { auditRouter } from "./routes/audit.js";
 import { tauxTvaRouter } from "./routes/taux-tva.js";
 import { rgpdRouter } from "./routes/rgpd.js";
 import { stockRouter } from "./routes/stock.js";
+import { abonnementsRouter } from "./routes/abonnements.js";
 
 const app = new Hono();
 
@@ -51,6 +52,7 @@ app.route("/api/audit", auditRouter);
 app.route("/api/taux-tva", tauxTvaRouter);
 app.route("/api/rgpd", rgpdRouter);
 app.route("/api/stock", stockRouter);
+app.route("/api/abonnements", abonnementsRouter);
 
 app.get("/health", (c) => c.json({ ok: true }));
 

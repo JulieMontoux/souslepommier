@@ -31,6 +31,7 @@ const LegalRgpdPage = lazy(() => import('./pages/legal-rgpd'))
 const PrixBulkPage = lazy(() => import('./pages/prix-bulk'))
 const StockPage = lazy(() => import('./pages/stock'))
 const VenteManuellePage = lazy(() => import('./pages/vente-manuelle'))
+const AbonnementsPage = lazy(() => import('./pages/abonnements'))
 
 const PageLoader = () => <div className="bg-muted m-6 h-full animate-pulse rounded-xl" />
 
@@ -130,6 +131,7 @@ export default function App() {
             <Route path="/dashboard/clients/:id/modifier" element={<ClientEditPage />} />
             <Route path="/dashboard/ventes" element={<VentesPage />} />
             <Route path="/dashboard/ventes/saisie-manuelle" element={<VenteManuellePage />} />
+            <Route path="/dashboard/abonnements" element={<AbonnementsPage />} />
             <Route path="/dashboard/stock" element={<StockPage />} />
             <Route path="/dashboard/clotures" element={<CloturesPage />} />
             <Route path="/dashboard/clotures/:id" element={<ClotureDetailPage />} />

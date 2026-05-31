@@ -62,6 +62,18 @@ enum StatutDemandeRGPD {
   REFUSEE
 }
 
+enum FrequenceAbonnement {
+  HEBDO
+  BIMENSUEL
+  MENSUEL
+}
+
+enum StatutLivraison {
+  PLANIFIEE
+  LIVREE
+  ANNULEE
+}
+
 // ─── Utilisateurs ────────────────────────────────────────────────────────────
 
 model User {
@@ -133,10 +145,11 @@ model VarianteProduit {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  produit         Produit         @relation(fields: [produitId], references: [id])
+  produit         Produit          @relation(fields: [produitId], references: [id])
   lignesVente     LigneVente[]
   mouvementsStock MouvementStock[]
   paliers         PalierRemise[]
+  lignesAbonnement LigneAbonnement[]
 
   @@map("variantes_produit")
 }
@@ -173,6 +186,7 @@ model Vente {
   lignes     LigneVente[]
   paiements  Paiement[]
   factures   Facture[]
+  livraisons Livraison[]
 
   @@index([date])
   @@index([vendeurId])
@@ -289,7 +303,8 @@ model Client {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  factures Facture[]
+  factures     Facture[]
+  abonnements  Abonnement[]
 
   @@map("clients")
 }
@@ -427,5 +442,54 @@ model TauxTVA {
   createdAt   DateTime @default(now())
 
   @@map("taux_tva")
+}
+
+// ─── AMAP / Abonnements ──────────────────────────────────────────────────────
+
+model Abonnement {
+  id        String              @id @default(cuid())
+  clientId  String
+  nom       String
+  frequence FrequenceAbonnement
+  actif     Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  client     Client            @relation(fields: [clientId], references: [id])
+  lignes     LigneAbonnement[]
+  livraisons Livraison[]
+
+  @@index([clientId])
+  @@map("abonnements")
+}
+
+model LigneAbonnement {
+  id                String  @id @default(cuid())
+  abonnementId      String
+  varianteProduitId String
+  qte               Decimal @db.Decimal(10, 3)
+
+  abonnement Abonnement      @relation(fields: [abonnementId], references: [id], onDelete: Cascade)
+  variante   VarianteProduit @relation(fields: [varianteProduitId], references: [id])
+
+  @@index([abonnementId])
+  @@map("lignes_abonnement")
+}
+
+model Livraison {
+  id           String          @id @default(cuid())
+  abonnementId String
+  date         DateTime
+  statut       StatutLivraison @default(PLANIFIEE)
+  venteId      String?         @unique
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  abonnement Abonnement @relation(fields: [abonnementId], references: [id], onDelete: Cascade)
+  vente      Vente?     @relation(fields: [venteId], references: [id])
+
+  @@index([abonnementId])
+  @@index([date])
+  @@map("livraisons")
 }
 

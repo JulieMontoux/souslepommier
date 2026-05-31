@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import { useSearchParams, Link } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { ShoppingBasket, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 
 const STATUT_LABELS: Record<
@@ -100,12 +99,13 @@ export default function VentesPage() {
             </p>
           )}
         </div>
-        <Button asChild variant="outline" className="shrink-0 gap-2">
-          <Link to="/dashboard/ventes/saisie-manuelle">
-            <Plus className="h-4 w-4" />
-            Saisie manuelle
-          </Link>
-        </Button>
+        <Link
+          to="/dashboard/ventes/saisie-manuelle"
+          className="border-border bg-card hover:bg-muted/50 inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Saisie manuelle
+        </Link>
       </div>
 
       {/* Filters */}

@@ -187,7 +187,7 @@ variantesRouter.put("/:id/paliers", requireRole("GERANT"), async (c) => {
     prisma.palierRemise.deleteMany({ where: { varianteId: id } }),
     ...parsed.data.map((p) =>
       prisma.palierRemise.create({
-        data: { varianteId: id, qteMin: p.qteMin, remisePct: p.remisePct },
+        data: { varianteId: id!, qteMin: p.qteMin, remisePct: p.remisePct },
       }),
     ),
   ]);

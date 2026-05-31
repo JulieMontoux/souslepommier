@@ -182,7 +182,7 @@ export default function VenteManuellePage() {
             <Select
               value={selectedProduit}
               onValueChange={(v) => {
-                setSelectedProduit(v)
+                if (v) setSelectedProduit(v)
                 setSelectedVariante('')
               }}
             >
@@ -201,7 +201,12 @@ export default function VenteManuellePage() {
           {produitActif && (
             <div className="min-w-48 flex-1">
               <Label>Variante</Label>
-              <Select value={selectedVariante} onValueChange={setSelectedVariante}>
+              <Select
+                value={selectedVariante}
+                onValueChange={(v) => {
+                  if (v) setSelectedVariante(v)
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Choisir…" />
                 </SelectTrigger>
@@ -321,7 +326,12 @@ export default function VenteManuellePage() {
           <h2 className="font-semibold">Paiement</h2>
           <div className="max-w-xs">
             <Label>Mode de paiement</Label>
-            <Select value={modePaiement} onValueChange={setModePaiement}>
+            <Select
+              value={modePaiement}
+              onValueChange={(v) => {
+                if (v) setModePaiement(v)
+              }}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
