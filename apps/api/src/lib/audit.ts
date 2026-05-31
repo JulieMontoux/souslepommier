@@ -36,7 +36,11 @@ type AuditAction =
   | "CREATE_ABONNEMENT"
   | "UPDATE_ABONNEMENT"
   | "PLAN_LIVRAISON"
-  | "LIVRER_ABONNEMENT";
+  | "LIVRER_ABONNEMENT"
+  | "ATTACH_CLIENT"
+  | "DETACH_CLIENT"
+  | "FORGOT_PASSWORD"
+  | "RESET_PASSWORD_TOKEN";
 
 export async function logAudit({
   userId,

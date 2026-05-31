@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { z } from 'zod'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,47 +9,33 @@ import { Leaf } from 'lucide-react'
 import { useAuth } from '@/contexts/auth'
 import { ApiError } from '@/lib/api'
 
-const schema = z.object({
-  email: z.string().email('Email invalide'),
-  password: z.string().min(1, 'Mot de passe requis'),
-})
-
 export default function LoginPage() {
-  const { login, state } = useAuth()
+  const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as { from?: Location })?.from?.pathname ?? '/dashboard'
 
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
-    setFieldErrors({})
-
     const formData = new FormData(e.currentTarget)
-    const raw = {
-      email: formData.get('email') as string,
-      password: formData.get('password') as string,
-    }
-
-    const parsed = schema.safeParse(raw)
-    if (!parsed.success) {
-      const errors = parsed.error.flatten().fieldErrors
-      setFieldErrors({ email: errors.email?.[0], password: errors.password?.[0] })
-      return
-    }
+    const username = (formData.get('username') as string).trim()
+    const password = formData.get('password') as string
 
     setPending(true)
     try {
-      const user = await login(raw.email, raw.password)
+      const user = await login(username, password)
       navigate(user.role === 'VENDEUR' ? '/pos' : from, { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.status === 429) setError('Trop de tentatives. Réessayez dans 15 minutes.')
-        else setError('Email ou mot de passe incorrect.')
+        setError(
+          err.status === 429
+            ? 'Trop de tentatives. Réessayez dans 15 minutes.'
+            : 'Identifiant ou mot de passe incorrect.'
+        )
       } else {
         setError('Une erreur est survenue. Réessayez.')
       }
@@ -67,7 +52,6 @@ export default function LoginPage() {
           'linear-gradient(135deg, oklch(0.97 0.02 150) 0%, oklch(0.99 0.005 150) 60%, oklch(0.97 0.015 200) 100%)',
       }}
     >
-      {/* Decorative blobs */}
       <div
         className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full opacity-30"
         style={{ background: 'radial-gradient(circle, oklch(0.85 0.12 150), transparent 70%)' }}
@@ -95,19 +79,19 @@ export default function LoginPage() {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email" className="font-medium text-green-900/80">
-                Email
+              <Label htmlFor="username" className="font-medium text-green-900/80">
+                Identifiant
               </Label>
               <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                autoCapitalize="none"
+                placeholder="prenom.nom"
                 autoFocus
                 required
-                className={fieldErrors.email ? 'border-red-500' : ''}
               />
-              {fieldErrors.email && <p className="text-xs text-red-500">{fieldErrors.email}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="font-medium text-green-900/80">
@@ -119,15 +103,19 @@ export default function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 required
-                className={fieldErrors.password ? 'border-red-500' : ''}
               />
-              {fieldErrors.password && (
-                <p className="text-xs text-red-500">{fieldErrors.password}</p>
-              )}
             </div>
             <Button type="submit" className="w-full" disabled={pending}>
               {pending ? 'Connexion…' : 'Se connecter'}
             </Button>
+            <div className="text-center">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-green-700 hover:text-green-900 hover:underline"
+              >
+                Mot de passe oublié ?
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>

@@ -3,8 +3,8 @@ import { api, ApiError } from '@/lib/api'
 
 export type AuthUser = {
   id: string
-  email: string
-  role: 'GERANT' | 'VENDEUR'
+  username: string
+  role: 'SUPERADMIN' | 'GERANT' | 'VENDEUR'
   nom: string
   prenom: string
 }
@@ -16,7 +16,7 @@ type AuthState =
 
 type AuthContextValue = {
   state: AuthState
-  login: (email: string, password: string) => Promise<AuthUser>
+  login: (username: string, password: string) => Promise<AuthUser>
   logout: () => Promise<void>
 }
 
@@ -32,8 +32,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .catch(() => setState({ status: 'unauthenticated' }))
   }, [])
 
-  async function login(email: string, password: string): Promise<AuthUser> {
-    const user = await api.post<AuthUser>('/auth/login', { email, password })
+  async function login(username: string, password: string): Promise<AuthUser> {
+    const user = await api.post<AuthUser>('/auth/login', { username, password })
     setState({ status: 'authenticated', user })
     return user
   }

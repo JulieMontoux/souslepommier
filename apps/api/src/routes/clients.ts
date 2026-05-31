@@ -145,10 +145,10 @@ clientsRouter.put("/:id", requireRole("GERANT"), async (c) => {
   return c.json(updated);
 });
 
-clientsRouter.get("/:id/factures", async (c) => {
-  const factures = await prisma.facture.findMany({
+clientsRouter.get("/:id/bons-livraison", async (c) => {
+  const bls = await prisma.bonLivraison.findMany({
     where: { clientId: c.req.param("id") },
     orderBy: { dateEmission: "desc" },
   });
-  return c.json(factures);
+  return c.json(bls);
 });

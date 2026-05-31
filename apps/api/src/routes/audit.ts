@@ -6,7 +6,7 @@ const PAGE_SIZE = 50;
 
 export const auditRouter = new Hono<HonoEnv>();
 
-auditRouter.use("*", requireRole("GERANT"));
+auditRouter.use("*", requireRole("SUPERADMIN"));
 
 auditRouter.get("/", async (c) => {
   const userId = c.req.query("userId") || undefined;

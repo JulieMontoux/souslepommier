@@ -35,6 +35,7 @@ const venteCreateSchema = z.object({
     )
     .min(1),
   pointDeVenteId: z.string().optional(),
+  clientId: z.string().optional(),
 });
 
 export const ventesRouter = new Hono<HonoEnv>();
@@ -73,6 +74,7 @@ ventesRouter.get("/", async (c) => {
       include: {
         vendeur: { select: { id: true, nom: true, prenom: true } },
         paiements: { select: { mode: true, montant: true } },
+        client: { select: { id: true, raisonSociale: true } },
         _count: { select: { lignes: true } },
       },
     }),
@@ -99,9 +101,12 @@ ventesRouter.post("/", async (c) => {
       user.id,
       parsed.data.lignes,
       parsed.data.paiements,
-      parsed.data.pointDeVenteId
-        ? { pointDeVenteId: parsed.data.pointDeVenteId }
-        : undefined,
+      {
+        ...(parsed.data.pointDeVenteId && {
+          pointDeVenteId: parsed.data.pointDeVenteId,
+        }),
+        ...(parsed.data.clientId && { clientId: parsed.data.clientId }),
+      },
     );
     await logAudit({
       userId: user.id,
@@ -297,7 +302,35 @@ ventesRouter.get("/:id/ticket", async (c) => {
   });
 });
 
-ventesRouter.post("/:id/annuler", async (c) => {
+ventesRouter.patch("/:id/client", requireRole("GERANT"), async (c) => {
+  const id = c.req.param("id");
+  const user = c.get("user");
+  const body = await c.req.json().catch(() => ({}));
+  const clientId = body?.clientId ?? null;
+
+  const vente = await prisma.vente.findUnique({ where: { id } });
+  if (!vente) return c.json({ error: "Vente introuvable" }, 404);
+  if (vente.statut !== "FINALISEE")
+    return c.json(
+      { error: "Seules les ventes finalisées sont modifiables" },
+      409,
+    );
+
+  const updated = await prisma.vente.update({
+    where: { id },
+    data: { clientId: clientId ?? null },
+  });
+  await logAudit({
+    userId: user.id,
+    action: clientId ? "ATTACH_CLIENT" : "DETACH_CLIENT",
+    entite: "Vente",
+    entiteId: id,
+    nouvelleValeur: { clientId },
+  });
+  return c.json(updated);
+});
+
+ventesRouter.post("/:id/annuler", requireRole("GERANT"), async (c) => {
   const id = c.req.param("id");
   const user = c.get("user");
 
@@ -309,16 +342,31 @@ ventesRouter.post("/:id/annuler", async (c) => {
       409,
     );
 
+  // Check if the vente's day has been clôturée
+  const venteDay = new Date(vente.date);
+  venteDay.setHours(0, 0, 0, 0);
+  const nextDay = new Date(venteDay);
+  nextDay.setDate(nextDay.getDate() + 1);
+
+  const cloture = await prisma.clotureCaisse.findFirst({
+    where: { date: { gte: venteDay, lt: nextDay } },
+  });
+  if (cloture)
+    return c.json({ error: "Impossible — la journée est déjà clôturée" }, 409);
+
+  const body = await c.req.json().catch(() => ({}));
+  const motif = typeof body?.motif === "string" ? body.motif.trim() : undefined;
+
   const updated = await prisma.vente.update({
     where: { id },
-    data: { statut: "ANNULEE" },
+    data: { statut: "ANNULEE", ...(motif && { motifAnnulation: motif }) },
   });
   await logAudit({
     userId: user.id,
     action: "ANNULER_VENTE",
     entite: "Vente",
     entiteId: id,
-    nouvelleValeur: { numeroTicket: vente.numeroTicket },
+    nouvelleValeur: { numeroTicket: vente.numeroTicket, motif },
   });
   return c.json(updated);
 });

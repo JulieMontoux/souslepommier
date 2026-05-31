@@ -27,6 +27,7 @@ export async function createVente(
     dateOverride?: Date;
     skipClotureCheck?: boolean;
     pointDeVenteId?: string;
+    clientId?: string;
   },
 ) {
   const now = options?.dateOverride ?? new Date();
@@ -128,6 +129,7 @@ export async function createVente(
         ...(options?.pointDeVenteId && {
           pointDeVenteId: options.pointDeVenteId,
         }),
+        ...(options?.clientId && { clientId: options.clientId }),
         lignes: { create: lignesComputed.map((l) => ({ ...l })) },
         paiements: {
           create: paiements.map((p) => ({

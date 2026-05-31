@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ShoppingCart } from 'lucide-react'
+import { ShoppingCart, CheckCircle2, Printer } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -24,7 +24,8 @@ interface CartPanelProps {
   tvaRecap: { taux: number; montantTVA: number }[]
   config: ConfigTicket
   lastVente: { id: string; numeroTicket: string } | null
-  setLastVente: React.Dispatch<React.SetStateAction<{ id: string; numeroTicket: string } | null>>
+  onPrintTicket: () => void
+  onNouvelleVente: () => void
 }
 
 export function CartPanel({
@@ -39,6 +40,9 @@ export function CartPanel({
   totalHT,
   totalTTC,
   tvaRecap,
+  lastVente,
+  onPrintTicket,
+  onNouvelleVente,
 }: CartPanelProps) {
   const [paye, setPaye] = useState('')
 
@@ -58,6 +62,34 @@ export function CartPanel({
     onConfirmPayment(paiements).catch(() => {
       toast.error('Erreur lors de la vente')
     })
+  }
+
+  // Success state: cart empty + last sale just recorded
+  if (cart.length === 0 && lastVente) {
+    return (
+      <aside className="flex w-[22rem] shrink-0 flex-col border-l border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-950">
+            <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+          </div>
+          <div>
+            <p className="text-base font-semibold text-zinc-800 dark:text-zinc-100">
+              Vente enregistrée
+            </p>
+            <p className="mt-1 font-mono text-sm text-zinc-400">{lastVente.numeroTicket}</p>
+          </div>
+          <div className="flex w-full flex-col gap-2">
+            <Button variant="outline" className="w-full gap-2" onClick={onPrintTicket}>
+              <Printer className="h-4 w-4" />
+              Imprimer le ticket
+            </Button>
+            <Button className="w-full" onClick={onNouvelleVente}>
+              Nouvelle vente
+            </Button>
+          </div>
+        </div>
+      </aside>
+    )
   }
 
   return (

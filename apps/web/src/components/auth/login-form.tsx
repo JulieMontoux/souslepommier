@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/auth'
 import { ApiError } from '@/lib/api'
 
 const schema = z.object({
-  email: z.string().email('Email invalide'),
+  username: z.string().min(1, 'Identifiant requis'),
   password: z.string().min(1, 'Mot de passe requis'),
 })
 
@@ -25,7 +25,7 @@ export function LoginForm() {
 
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
+  const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({})
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -34,27 +34,27 @@ export function LoginForm() {
 
     const formData = new FormData(e.currentTarget)
     const raw = {
-      email: formData.get('email') as string,
+      username: formData.get('username') as string,
       password: formData.get('password') as string,
     }
 
     const parsed = schema.safeParse(raw)
     if (!parsed.success) {
       const errors = parsed.error.flatten().fieldErrors
-      setFieldErrors({ email: errors.email?.[0], password: errors.password?.[0] })
+      setFieldErrors({ username: errors.username?.[0], password: errors.password?.[0] })
       return
     }
 
     setIsPending(true)
     try {
-      const user = await login(raw.email, raw.password)
+      const user = await login(raw.username, raw.password)
       navigate(user.role === 'VENDEUR' ? '/pos' : from, { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {
         setError(
           err.status === 429
             ? 'Trop de tentatives. Réessayez dans 15 minutes.'
-            : 'Email ou mot de passe incorrect.'
+            : 'Identifiant ou mot de passe incorrect.'
         )
       } else {
         setError('Une erreur est survenue. Réessayez.')
@@ -84,20 +84,21 @@ export function LoginForm() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-slate-700">
-              Email
+            <Label htmlFor="username" className="text-slate-700">
+              Identifiant
             </Label>
             <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="prenom.nom@exemple.fr"
-              autoComplete="email"
+              id="username"
+              name="username"
+              type="text"
+              placeholder="prenom.nom"
+              autoComplete="username"
+              autoCapitalize="none"
               disabled={isPending}
               required
               className="border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:ring-green-500"
             />
-            {fieldErrors.email && <p className="text-sm text-red-500">{fieldErrors.email}</p>}
+            {fieldErrors.username && <p className="text-sm text-red-500">{fieldErrors.username}</p>}
           </div>
 
           <div className="space-y-2">

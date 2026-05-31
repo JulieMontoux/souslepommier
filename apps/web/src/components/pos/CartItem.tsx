@@ -80,9 +80,9 @@ export function CartItem({ ligne, onUpdateQte, onUpdateRemise, onRemoveLine }: C
               <Input
                 type="number"
                 value={ligne.qte}
-                min="0.001"
-                step="0.001"
-                onChange={(e) => onUpdateQte(ligne.key, parseFloat(e.target.value))}
+                min="1"
+                step="1"
+                onChange={(e) => onUpdateQte(ligne.key, parseInt(e.target.value, 10))}
                 className="w-14 border-zinc-200 px-1 py-0.5 text-center text-sm dark:border-zinc-700 dark:bg-zinc-800"
               />
               <button

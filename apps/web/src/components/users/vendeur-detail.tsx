@@ -4,7 +4,16 @@ import { useState, useTransition } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowLeft, KeyRound, CheckCircle, XCircle, Trash2, TrendingUp } from 'lucide-react'
+import {
+  ArrowLeft,
+  KeyRound,
+  CheckCircle,
+  XCircle,
+  Trash2,
+  TrendingUp,
+  Copy,
+  X,
+} from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -34,6 +43,7 @@ export function VendeurDetailView({ user, isSelf }: VendeurDetailViewProps) {
   const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [showDelete, setShowDelete] = useState(false)
+  const [newPassword, setNewPassword] = useState<string | null>(null)
 
   function handleToggle() {
     startTransition(async () => {
@@ -55,12 +65,14 @@ export function VendeurDetailView({ user, isSelf }: VendeurDetailViewProps) {
   function handleResetPassword() {
     startTransition(async () => {
       const res = await fetch(`/api/users/${user.id}/reset-password`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        toast.error((err as { error?: string }).error ?? 'Erreur')
+        toast.error((data as { error?: string }).error ?? 'Erreur')
         return
       }
-      toast.success('Nouveau mot de passe envoyé par email')
+      const { password, emailSent } = data as { password: string; emailSent: boolean }
+      setNewPassword(password)
+      if (emailSent) toast.success('Email envoyé')
     })
   }
 
@@ -92,11 +104,23 @@ export function VendeurDetailView({ user, isSelf }: VendeurDetailViewProps) {
             <h1 className="text-2xl font-bold text-zinc-900">
               {user.prenom} {user.nom}
             </h1>
-            <p className="text-sm text-zinc-500">{user.email}</p>
+            <p className="font-mono text-sm text-zinc-500">{user.username}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={user.role === 'GERANT' ? 'default' : 'secondary'}>
-              {user.role === 'GERANT' ? 'Gérant' : 'Vendeur'}
+            <Badge
+              variant={
+                user.role === 'SUPERADMIN'
+                  ? 'destructive'
+                  : user.role === 'GERANT'
+                    ? 'default'
+                    : 'secondary'
+              }
+            >
+              {user.role === 'SUPERADMIN'
+                ? 'Super Admin'
+                : user.role === 'GERANT'
+                  ? 'Gérant'
+                  : 'Vendeur'}
             </Badge>
             {user.actif ? (
               <Badge variant="default" className="gap-1 bg-green-600">
@@ -190,6 +214,41 @@ export function VendeurDetailView({ user, isSelf }: VendeurDetailViewProps) {
           </div>
         )}
       </div>
+
+      {newPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white shadow-xl">
+            <div className="px-6 py-5">
+              <h2 className="text-lg font-semibold text-zinc-900">Nouveau mot de passe</h2>
+              <p className="mt-2 text-sm text-zinc-500">
+                Transmettez ce mot de passe au vendeur. Il ne sera plus affiché après fermeture.
+              </p>
+              <div className="mt-4 flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
+                <span className="flex-1 font-mono text-lg font-semibold tracking-wide text-zinc-900">
+                  {newPassword}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(newPassword)
+                    toast.success('Copié !')
+                  }}
+                  className="text-zinc-400 hover:text-zinc-700"
+                  title="Copier"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-end border-t border-zinc-100 px-6 py-4">
+              <Button onClick={() => setNewPassword(null)}>
+                <X className="mr-1.5 h-4 w-4" />
+                Fermer
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

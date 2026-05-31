@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm, useFieldArray } from 'react-hook-form'
-import { z } from 'zod'
+import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ArrowLeft, Save, Plus, Trash2, Search } from 'lucide-react'
+import { ArrowLeft, Save, Plus, Trash2, Search, Package, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,21 +19,36 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { roundFiscal, calcMontantTVA } from '@/lib/tva'
+import { api } from '@/lib/api'
 import type { ClientComplet } from '@/types/client'
+import type { ProduitPOS, ProduitPOSVariante } from '@/types/pos'
 
 const TVA_TAUX = ['0', '5.5', '10', '20'] as const
+
+const EMBALLAGE: Record<string, string> = {
+  VRAC: '',
+  BARQUETTE: 'barquette',
+  FILET: 'filet',
+  SAC: 'sac',
+  CAISSE: 'caisse',
+  PLATEAU: 'plateau',
+}
+
+type LigneForm = {
+  varianteProduitId: string
+  designation: string
+  qte: string
+  prixUnitaireHT: string
+  tauxTVA: string
+  remise: string
+}
 
 type FormValues = {
   clientId: string
   mode: 'manuel' | 'vente'
   venteTicket: string
-  lignes: Array<{
-    designation: string
-    qte: string
-    prixUnitaireHT: string
-    tauxTVA: string
-    remise: string
-  }>
+  lignes: LigneForm[]
+  remiseCommerciale: string
   dateEcheance: string
   dateLivraison: string
   notes: string
@@ -61,20 +76,126 @@ interface FactureFormProps {
   clients: ClientComplet[]
 }
 
-const EMBALLAGE: Record<string, string> = {
-  VRAC: '',
-  BARQUETTE: 'barquette',
-  FILET: 'filet',
-  SAC: 'sac',
-  CAISSE: 'caisse',
-  PLATEAU: 'plateau',
+function varianteLabel(v: ProduitPOSVariante): string {
+  const parts: string[] = []
+  if (v.poids) parts.push(`${Number(v.poids)} kg`)
+  const emb = EMBALLAGE[v.emballage]
+  if (emb) parts.push(emb)
+  return parts.join(' ') || 'Unité'
 }
+
+// ─── Catalogue picker ────────────────────────────────────────────────────────
+
+interface CataloguePickerProps {
+  onPick: (ligne: LigneForm) => void
+  onClose: () => void
+}
+
+function CataloguePicker({ onPick, onClose }: CataloguePickerProps) {
+  const [q, setQ] = useState('')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  const { data: produits = [] } = useQuery<ProduitPOS[]>({
+    queryKey: ['produits', 'pos'],
+    queryFn: () => api.get('/produits/pos'),
+    staleTime: 60_000,
+  })
+
+  const filtered = produits.filter((p) => !q || p.nom.toLowerCase().includes(q.toLowerCase()))
+
+  function pick(produit: ProduitPOS, variante: ProduitPOSVariante) {
+    const label = varianteLabel(variante)
+    const designation = label && label !== 'Unité' ? `${produit.nom} — ${label}` : produit.nom
+    onPick({
+      varianteProduitId: variante.id,
+      designation,
+      qte: '1',
+      prixUnitaireHT: variante.prixHT.toFixed(4),
+      tauxTVA: String(variante.tauxTVA),
+      remise: '0',
+    })
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="flex h-[70vh] w-full max-w-lg flex-col rounded-xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
+          <span className="font-semibold text-zinc-800">Choisir un produit</span>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="px-4 py-2">
+          <Input
+            autoFocus
+            placeholder="Rechercher un produit…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {filtered.length === 0 && (
+            <p className="py-12 text-center text-sm text-zinc-400">Aucun produit</p>
+          )}
+          {filtered.map((p) => (
+            <div key={p.id} className="border-b border-zinc-50 last:border-0">
+              {p.variantes.length === 1 ? (
+                <button
+                  type="button"
+                  onClick={() => pick(p, p.variantes[0])}
+                  className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-zinc-50"
+                >
+                  <span className="text-sm font-medium text-zinc-800">{p.nom}</span>
+                  <span className="text-xs text-zinc-400">
+                    {p.variantes[0].prixHT.toFixed(2).replace('.', ',')} € HT
+                  </span>
+                </button>
+              ) : (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                    className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-zinc-50"
+                  >
+                    <span className="text-sm font-medium text-zinc-800">{p.nom}</span>
+                    <span className="text-xs text-zinc-400">{p.variantes.length} variantes</span>
+                  </button>
+                  {expandedId === p.id && (
+                    <div className="bg-zinc-50 pb-1">
+                      {p.variantes.map((v) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => pick(p, v)}
+                          className="flex w-full items-center justify-between px-6 py-2 text-left text-sm hover:bg-zinc-100"
+                        >
+                          <span className="text-zinc-700">{varianteLabel(v)}</span>
+                          <span className="text-xs text-zinc-400">
+                            {v.prixHT.toFixed(2).replace('.', ',')} € HT — TVA {v.tauxTVA}%
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main form ────────────────────────────────────────────────────────────────
 
 export function FactureForm({ clients }: FactureFormProps) {
   const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [ventePreview, setVentePreview] = useState<VentePreview | null>(null)
   const [searching, setSearching] = useState(false)
+  const [showCatalogue, setShowCatalogue] = useState(false)
 
   const {
     register,
@@ -88,7 +209,17 @@ export function FactureForm({ clients }: FactureFormProps) {
       clientId: '',
       mode: 'manuel',
       venteTicket: '',
-      lignes: [{ designation: '', qte: '1', prixUnitaireHT: '', tauxTVA: '20', remise: '0' }],
+      lignes: [
+        {
+          varianteProduitId: '',
+          designation: '',
+          qte: '1',
+          prixUnitaireHT: '',
+          tauxTVA: '20',
+          remise: '0',
+        },
+      ],
+      remiseCommerciale: '0',
       dateEcheance: '',
       dateLivraison: '',
       notes: '',
@@ -99,8 +230,10 @@ export function FactureForm({ clients }: FactureFormProps) {
   const { fields, append, remove } = useFieldArray({ control, name: 'lignes' })
   const mode = watch('mode')
   const lignes = watch('lignes')
+  const remiseCommercialeStr = watch('remiseCommerciale')
+  const remisePct = parseFloat(remiseCommercialeStr ?? '0') || 0
+  const remiseFactor = 1 - remisePct / 100
 
-  // Compute line totals for preview
   const lignesComputed = lignes.map((l) => {
     const qte = parseFloat(l.qte) || 0
     const puHT = parseFloat(l.prixUnitaireHT) || 0
@@ -112,26 +245,22 @@ export function FactureForm({ clients }: FactureFormProps) {
     return { montantHT, montantTVA, montantTTC: roundFiscal(montantHT + montantTVA) }
   })
 
-  const totalTTC = roundFiscal(lignesComputed.reduce((s, l) => s + l.montantTTC, 0))
+  const totalTTCBrut = roundFiscal(lignesComputed.reduce((s, l) => s + l.montantTTC, 0))
+  const totalTTC = roundFiscal(totalTTCBrut * remiseFactor)
 
   async function searchVente() {
     const ticket = watch('venteTicket')?.trim()
     if (!ticket) return
     setSearching(true)
     try {
-      // Search by ticket number via list endpoint
       const res = await fetch(`/api/ventes?q=${encodeURIComponent(ticket)}`)
       const data = await res.json()
       const ventes = Array.isArray(data) ? data : []
       const found = ventes.find((v: { numeroTicket: string }) => v.numeroTicket === ticket)
       if (!found) {
-        // Try direct by ID
         const res2 = await fetch(`/api/ventes/${ticket}`)
-        if (res2.ok) {
-          setVentePreview(await res2.json())
-        } else {
-          toast.error('Vente introuvable')
-        }
+        if (res2.ok) setVentePreview(await res2.json())
+        else toast.error('Vente introuvable')
       } else {
         const res2 = await fetch(`/api/ventes/${found.id}`)
         setVentePreview(await res2.json())
@@ -146,41 +275,59 @@ export function FactureForm({ clients }: FactureFormProps) {
   function onSubmit(values: FormValues) {
     startTransition(async () => {
       try {
-        let payload: Record<string, unknown>
+        let lignesPayload: Array<{
+          varianteProduitId?: string | null
+          designation: string
+          qte: number
+          prixUnitaireHT: number
+          tauxTVA: number
+          remise: number
+        }>
 
         if (values.mode === 'vente') {
           if (!ventePreview) {
             toast.error('Sélectionnez une vente')
             return
           }
-          payload = {
-            clientId: values.clientId,
-            venteId: ventePreview.id,
-            dateEcheance: values.dateEcheance ? new Date(values.dateEcheance).toISOString() : null,
-            dateLivraison: values.dateLivraison
-              ? new Date(values.dateLivraison).toISOString()
-              : null,
-            notes: values.notes || null,
-            statut: values.statut,
-          }
+          lignesPayload = ventePreview.lignes.map((l) => {
+            const v = l.variante
+            const designation = v
+              ? [
+                  v.produit.nom,
+                  v.poids ? `${Number(v.poids)} kg` : '',
+                  EMBALLAGE[v.emballage] ?? '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')
+              : (l.designation ?? '?')
+            return {
+              designation,
+              qte: Number(l.qte),
+              prixUnitaireHT: Number(l.prixUnitaireHT),
+              tauxTVA: Number(l.tauxTVA),
+              remise: Number(l.remise) || 0,
+            }
+          })
         } else {
-          const lignesPayload = values.lignes.map((l) => ({
+          lignesPayload = values.lignes.map((l) => ({
+            varianteProduitId: l.varianteProduitId || null,
             designation: l.designation,
             qte: parseFloat(l.qte),
             prixUnitaireHT: parseFloat(l.prixUnitaireHT),
             tauxTVA: parseFloat(l.tauxTVA),
             remise: parseFloat(l.remise) || 0,
           }))
-          payload = {
-            clientId: values.clientId,
-            lignes: lignesPayload,
-            dateEcheance: values.dateEcheance ? new Date(values.dateEcheance).toISOString() : null,
-            dateLivraison: values.dateLivraison
-              ? new Date(values.dateLivraison).toISOString()
-              : null,
-            notes: values.notes || null,
-            statut: values.statut,
-          }
+        }
+
+        const payload = {
+          clientId: values.clientId,
+          venteId: values.mode === 'vente' && ventePreview ? ventePreview.id : null,
+          lignes: lignesPayload,
+          remiseCommerciale: parseFloat(values.remiseCommerciale) || 0,
+          dateEcheance: values.dateEcheance ? new Date(values.dateEcheance).toISOString() : null,
+          dateLivraison: values.dateLivraison ? new Date(values.dateLivraison).toISOString() : null,
+          notes: values.notes || null,
+          statut: values.statut,
         }
 
         const res = await fetch('/api/factures', {
@@ -206,6 +353,13 @@ export function FactureForm({ clients }: FactureFormProps) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
+      {showCatalogue && (
+        <CataloguePicker
+          onPick={(ligne) => append(ligne)}
+          onClose={() => setShowCatalogue(false)}
+        />
+      )}
+
       <div className="flex items-center gap-3">
         <Link
           to="/dashboard/factures"
@@ -217,7 +371,7 @@ export function FactureForm({ clients }: FactureFormProps) {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        {/* Client + statut */}
+        {/* Informations générales */}
         <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
           <p className="mb-4 text-sm font-semibold text-zinc-700">Informations générales</p>
           <div className="grid grid-cols-2 gap-4">
@@ -265,33 +419,24 @@ export function FactureForm({ clients }: FactureFormProps) {
           </div>
         </div>
 
-        {/* Mode toggle */}
+        {/* Source des lignes */}
         <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setValue('mode', 'manuel')}
-              className={cn(
-                'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-                mode === 'manuel'
-                  ? 'bg-zinc-900 text-white'
-                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-              )}
-            >
-              Lignes manuelles
-            </button>
-            <button
-              type="button"
-              onClick={() => setValue('mode', 'vente')}
-              className={cn(
-                'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-                mode === 'vente'
-                  ? 'bg-zinc-900 text-white'
-                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-              )}
-            >
-              Depuis une vente caisse
-            </button>
+            {(['manuel', 'vente'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setValue('mode', m)}
+                className={cn(
+                  'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+                  mode === m
+                    ? 'bg-zinc-900 text-white'
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                )}
+              >
+                {m === 'manuel' ? 'Lignes manuelles' : 'Depuis une vente caisse'}
+              </button>
+            ))}
           </div>
 
           {mode === 'vente' ? (
@@ -342,7 +487,7 @@ export function FactureForm({ clients }: FactureFormProps) {
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Columns header */}
+              {/* En-têtes colonnes */}
               <div className="grid grid-cols-12 gap-2 text-xs font-medium text-zinc-500">
                 <span className="col-span-4">Désignation</span>
                 <span className="col-span-1 text-center">Qté</span>
@@ -352,13 +497,18 @@ export function FactureForm({ clients }: FactureFormProps) {
                 <span className="col-span-2 text-right">TTC</span>
                 <span className="col-span-1" />
               </div>
+
               {fields.map((field, idx) => (
                 <div key={field.id} className="grid grid-cols-12 items-center gap-2">
-                  <Input
-                    {...register(`lignes.${idx}.designation`)}
-                    placeholder="Désignation"
-                    className="col-span-4 h-8 text-sm"
-                  />
+                  <div className="relative col-span-4">
+                    <Input
+                      {...register(`lignes.${idx}.designation`)}
+                      placeholder="Désignation"
+                      className="h-8 text-sm"
+                    />
+                    {/* hidden varianteProduitId */}
+                    <input type="hidden" {...register(`lignes.${idx}.varianteProduitId`)} />
+                  </div>
                   <Input
                     {...register(`lignes.${idx}.qte`)}
                     type="number"
@@ -406,27 +556,60 @@ export function FactureForm({ clients }: FactureFormProps) {
                   </button>
                 </div>
               ))}
-              <button
-                type="button"
-                onClick={() =>
-                  append({
-                    designation: '',
-                    qte: '1',
-                    prixUnitaireHT: '',
-                    tauxTVA: '20',
-                    remise: '0',
-                  })
-                }
-                className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Ajouter une ligne
-              </button>
-              {mode === 'manuel' && (
-                <div className="flex justify-end border-t border-zinc-100 pt-3 text-sm font-bold text-zinc-900">
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    append({
+                      varianteProduitId: '',
+                      designation: '',
+                      qte: '1',
+                      prixUnitaireHT: '',
+                      tauxTVA: '20',
+                      remise: '0',
+                    })
+                  }
+                  className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Ajouter une ligne
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCatalogue(true)}
+                  className="flex items-center gap-1 text-sm text-green-700 hover:text-green-900"
+                >
+                  <Package className="h-3.5 w-3.5" />
+                  Depuis le catalogue
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
+                <div className="flex items-center gap-2 text-sm text-zinc-600">
+                  <Label htmlFor="remiseCommerciale" className="whitespace-nowrap">
+                    Remise commerciale (%)
+                  </Label>
+                  <Input
+                    id="remiseCommerciale"
+                    {...register('remiseCommerciale')}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    placeholder="0"
+                    className="h-8 w-20 text-center text-sm"
+                  />
+                </div>
+                <div className="text-sm font-bold text-zinc-900">
+                  {remisePct > 0 && (
+                    <span className="mr-3 font-normal text-zinc-400 line-through">
+                      {totalTTCBrut.toFixed(2).replace('.', ',')} €
+                    </span>
+                  )}
                   Total TTC : {totalTTC.toFixed(2).replace('.', ',')} €
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>

@@ -138,8 +138,8 @@ export default function DashboardPage() {
               />
               <Tooltip
                 formatter={(v) => [`${Number(v).toFixed(2).replace('.', ',')} €`, 'CA TTC']}
-                labelFormatter={(d: string) =>
-                  new Date(d).toLocaleDateString('fr-FR', {
+                labelFormatter={(d) =>
+                  new Date(d as string).toLocaleDateString('fr-FR', {
                     weekday: 'long',
                     day: 'numeric',
                     month: 'short',
