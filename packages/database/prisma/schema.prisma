@@ -136,8 +136,20 @@ model VarianteProduit {
   produit         Produit         @relation(fields: [produitId], references: [id])
   lignesVente     LigneVente[]
   mouvementsStock MouvementStock[]
+  paliers         PalierRemise[]
 
   @@map("variantes_produit")
+}
+
+model PalierRemise {
+  id         String          @id @default(cuid())
+  varianteId String
+  qteMin     Decimal         @db.Decimal(10, 3)
+  remisePct  Decimal         @db.Decimal(5, 2)
+  variante   VarianteProduit @relation(fields: [varianteId], references: [id], onDelete: Cascade)
+
+  @@index([varianteId])
+  @@map("paliers_remise")
 }
 
 // ─── Ventes ──────────────────────────────────────────────────────────────────

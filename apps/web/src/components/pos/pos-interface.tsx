@@ -128,11 +128,16 @@ export function POSInterface({
       if (!variante.venteAuPoids) {
         const existing = prev.find((l) => l.varianteProduitId === variante.id && !l.venteAuPoids)
         if (existing) {
+          const newQte = roundFiscal(existing.qte + 1)
+          const palierRemise = getBestRemise(variante.id, newQte)
           return prev.map((l) =>
-            l.key === existing.key ? { ...l, qte: roundFiscal(l.qte + 1) } : l
+            l.key === existing.key
+              ? { ...l, qte: newQte, remise: palierRemise > 0 ? palierRemise : (l.remise ?? 0) }
+              : l
           )
         }
       }
+      const palierRemise = getBestRemise(variante.id, qte)
       return [
         ...prev,
         {
@@ -144,16 +149,31 @@ export function POSInterface({
           prixUnitaireHT: variante.prixHT,
           tauxTVA: variante.tauxTVA,
           venteAuPoids: variante.venteAuPoids,
+          ...(palierRemise > 0 && { remise: palierRemise }),
         },
       ]
     })
+  }
+
+  function getBestRemise(varianteProduitId: string, qte: number): number {
+    const variante = produits.flatMap((p) => p.variantes).find((v) => v.id === varianteProduitId)
+    if (!variante || variante.paliers.length === 0) return 0
+    const sorted = [...variante.paliers].sort((a, b) => b.qteMin - a.qteMin)
+    const best = sorted.find((p) => qte >= p.qteMin)
+    return best ? best.remisePct : 0
   }
 
   function updateQte(key: string, qte: number) {
     if (isNaN(qte) || qte <= 0) {
       setCart((prev) => prev.filter((l) => l.key !== key))
     } else {
-      setCart((prev) => prev.map((l) => (l.key === key ? { ...l, qte } : l)))
+      setCart((prev) =>
+        prev.map((l) => {
+          if (l.key !== key) return l
+          const palierRemise = getBestRemise(l.varianteProduitId, qte)
+          return { ...l, qte, remise: palierRemise > 0 ? palierRemise : (l.remise ?? 0) }
+        })
+      )
     }
   }
 

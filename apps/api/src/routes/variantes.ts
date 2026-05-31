@@ -164,6 +164,62 @@ variantesRouter.patch("/bulk-prix", requireRole("GERANT"), async (c) => {
   return c.json({ updated: updates.filter(Boolean).length });
 });
 
+const palierSchema = z.object({
+  qteMin: z.number().min(0),
+  remisePct: z.number().min(0.01).max(100),
+});
+
+// Replace all paliers for a variante (send full array)
+variantesRouter.put("/:id/paliers", requireRole("GERANT"), async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => null);
+  const parsed = z.array(palierSchema).safeParse(body);
+  if (!parsed.success)
+    return c.json(
+      { error: "Données invalides", details: parsed.error.flatten() },
+      422,
+    );
+
+  const variante = await prisma.varianteProduit.findUnique({ where: { id } });
+  if (!variante) return c.json({ error: "Variante introuvable" }, 404);
+
+  await prisma.$transaction([
+    prisma.palierRemise.deleteMany({ where: { varianteId: id } }),
+    ...parsed.data.map((p) =>
+      prisma.palierRemise.create({
+        data: { varianteId: id, qteMin: p.qteMin, remisePct: p.remisePct },
+      }),
+    ),
+  ]);
+
+  const paliers = await prisma.palierRemise.findMany({
+    where: { varianteId: id },
+    orderBy: { qteMin: "asc" },
+  });
+  return c.json(
+    paliers.map((p) => ({
+      id: p.id,
+      qteMin: Number(p.qteMin),
+      remisePct: Number(p.remisePct),
+    })),
+  );
+});
+
+variantesRouter.get("/:id/paliers", async (c) => {
+  const id = c.req.param("id");
+  const paliers = await prisma.palierRemise.findMany({
+    where: { varianteId: id },
+    orderBy: { qteMin: "asc" },
+  });
+  return c.json(
+    paliers.map((p) => ({
+      id: p.id,
+      qteMin: Number(p.qteMin),
+      remisePct: Number(p.remisePct),
+    })),
+  );
+});
+
 variantesRouter.patch("/:id/statut", requireRole("GERANT"), async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => null);

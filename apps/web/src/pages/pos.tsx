@@ -45,6 +45,13 @@ export default function PosPage() {
             venteAuPoids: Boolean(v.venteAuPoids),
             stockActuel: Number(v.stockActuel ?? 0),
             stockMin: v.stockMin != null ? Number(v.stockMin) : null,
+            paliers: (
+              (v.paliers as Array<{ id: string; qteMin: unknown; remisePct: unknown }>) ?? []
+            ).map((p) => ({
+              id: p.id,
+              qteMin: Number(p.qteMin),
+              remisePct: Number(p.remisePct),
+            })),
           })),
       }))
     },

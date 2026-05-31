@@ -88,6 +88,12 @@ produitsRouter.get("/", async (c) => {
       variantes: {
         where: actif !== undefined ? { actif } : undefined,
         orderBy: { poids: "asc" },
+        include: {
+          paliers: {
+            orderBy: { qteMin: "asc" },
+            select: { id: true, qteMin: true, remisePct: true },
+          },
+        },
       },
     },
     orderBy: { nom: "asc" },
@@ -129,7 +135,13 @@ produitsRouter.post("/", requireRole("GERANT"), async (c) => {
 produitsRouter.get("/:id", async (c) => {
   const produit = await prisma.produit.findUnique({
     where: { id: c.req.param("id") },
-    include: { categorie: true, variantes: { orderBy: { poids: "asc" } } },
+    include: {
+      categorie: true,
+      variantes: {
+        orderBy: { poids: "asc" },
+        include: { paliers: { orderBy: { qteMin: "asc" } } },
+      },
+    },
   });
   if (!produit) return c.json({ error: "Produit introuvable" }, 404);
   return c.json({ ...produit, horsJour: isHorsSaison(produit) });

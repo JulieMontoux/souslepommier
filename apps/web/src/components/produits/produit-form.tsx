@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   useForm,
@@ -243,6 +243,156 @@ function SaisonSection({
       ) : (
         <p className="text-sm text-zinc-400">Aucune restriction — disponible toute l&apos;année.</p>
       )}
+    </div>
+  )
+}
+
+type Palier = { id: string; qteMin: number; remisePct: number }
+
+function PaliersVariante({
+  varianteId,
+  varianteLabel,
+  venteAuPoids,
+}: {
+  varianteId: string
+  varianteLabel: string
+  venteAuPoids: boolean
+}) {
+  const [paliers, setPaliers] = useState<Palier[]>([])
+  const [loading, setLoading] = useState(false)
+  const [qteMin, setQteMin] = useState('')
+  const [remisePct, setRemisePct] = useState('')
+  const unit = venteAuPoids ? 'kg' : 'pcs'
+
+  useEffect(() => {
+    fetch(`/api/variantes/${varianteId}/paliers`)
+      .then((r) => r.json())
+      .then((data: Palier[]) => setPaliers(data))
+      .catch(() => {})
+  }, [varianteId])
+
+  async function savePaliers(next: Omit<Palier, 'id'>[]) {
+    setLoading(true)
+    const res = await fetch(`/api/variantes/${varianteId}/paliers`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(next),
+    })
+    if (res.ok) {
+      const data: Palier[] = await res.json()
+      setPaliers(data)
+    }
+    setLoading(false)
+  }
+
+  function addPalier() {
+    const qMin = parseFloat(qteMin.replace(',', '.'))
+    const pct = parseFloat(remisePct.replace(',', '.'))
+    if (isNaN(qMin) || qMin <= 0 || isNaN(pct) || pct <= 0 || pct > 100) return
+    const next = [
+      ...paliers.map((p) => ({ qteMin: p.qteMin, remisePct: p.remisePct })),
+      { qteMin: qMin, remisePct: pct },
+    ].sort((a, b) => a.qteMin - b.qteMin)
+    void savePaliers(next)
+    setQteMin('')
+    setRemisePct('')
+  }
+
+  function removePalier(id: string) {
+    const next = paliers
+      .filter((p) => p.id !== id)
+      .map((p) => ({ qteMin: p.qteMin, remisePct: p.remisePct }))
+    void savePaliers(next)
+  }
+
+  return (
+    <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-4">
+      <p className="mb-2 text-xs font-semibold text-zinc-600">{varianteLabel}</p>
+      {paliers.length > 0 && (
+        <div className="mb-2 space-y-1">
+          {paliers.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-center justify-between rounded bg-white px-3 py-1.5 text-xs shadow-sm"
+            >
+              <span className="text-zinc-600">
+                ≥{' '}
+                <strong>
+                  {venteAuPoids ? p.qteMin.toFixed(3) : p.qteMin} {unit}
+                </strong>
+                {' → '}
+                <strong className="text-green-700">{p.remisePct}%</strong> de remise
+              </span>
+              <button
+                type="button"
+                onClick={() => removePalier(p.id)}
+                disabled={loading}
+                className="ml-3 text-red-400 hover:text-red-600"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        <Input
+          type="number"
+          min="0"
+          step={venteAuPoids ? '0.001' : '1'}
+          value={qteMin}
+          onChange={(e) => setQteMin(e.target.value)}
+          placeholder={`Qté min (${unit})`}
+          className="h-8 w-36 text-xs"
+        />
+        <Input
+          type="number"
+          min="0.01"
+          max="100"
+          step="0.1"
+          value={remisePct}
+          onChange={(e) => setRemisePct(e.target.value)}
+          placeholder="Remise %"
+          className="h-8 w-28 text-xs"
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={addPalier}
+          disabled={loading}
+          className="h-8 text-xs"
+        >
+          <Plus className="mr-1 h-3 w-3" />
+          Ajouter
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function PaliersSection({
+  variantesAvecId,
+}: {
+  variantesAvecId: Array<{ id: string; label: string; venteAuPoids: boolean }>
+}) {
+  if (variantesAvecId.length === 0) return null
+  return (
+    <div className="space-y-3 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+      <h2 className="font-semibold text-zinc-800">Paliers de remise</h2>
+      <p className="text-xs text-zinc-400">
+        Remise automatique dans le POS quand la quantité atteint le seuil.
+      </p>
+      <div className="space-y-3">
+        {variantesAvecId.map((v) => (
+          <PaliersVariante
+            key={v.id}
+            varianteId={v.id}
+            varianteLabel={v.label}
+            venteAuPoids={v.venteAuPoids}
+          />
+        ))}
+      </div>
     </div>
   )
 }
@@ -771,6 +921,17 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
           </div>
         )}
       </div>
+
+      {/* Paliers de remise par quantité */}
+      <PaliersSection
+        variantesAvecId={watchedVariantes
+          .filter((v) => v.id && v.actif)
+          .map((v) => {
+            const emb = EMBALLAGE_LABELS[v.emballage] ?? v.emballage
+            const label = v.poids ? `${v.poids} kg · ${emb}` : emb
+            return { id: v.id!, label, venteAuPoids: v.venteAuPoids ?? false }
+          })}
+      />
 
       {/* Confirmation suppression/désactivation variante */}
       <DeactivateDialog

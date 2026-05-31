@@ -1,3 +1,9 @@
+export type PalierRemise = {
+  id: string
+  qteMin: number
+  remisePct: number
+}
+
 export type ProduitPOSVariante = {
   id: string
   poids: number | null
@@ -9,6 +15,7 @@ export type ProduitPOSVariante = {
   venteAuPoids: boolean
   stockActuel: number
   stockMin: number | null
+  paliers: PalierRemise[]
 }
 
 export type ProduitPOS = {
