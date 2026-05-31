@@ -72,7 +72,7 @@ export function LabelPrintModal({
         produit.nom,
         varianteLabel,
         prix,
-        Number(v.tauxTVA),
+        v.tauxTVA.taux,
         raisonSociale
       )
       for (let i = 0; i < count; i++) labelsToRender.push(block)

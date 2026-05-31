@@ -24,6 +24,7 @@ const BonLivraisonNewPage = lazy(() => import('./pages/bon-livraison-new'))
 const StatistiquesPage = lazy(() => import('./pages/statistiques'))
 const ConfigPage = lazy(() => import('./pages/configuration'))
 const TvaPage = lazy(() => import('./pages/configuration-tva'))
+const CategoriesPage = lazy(() => import('./pages/categories'))
 const AuditPage = lazy(() => import('./pages/audit'))
 const RgpdPage = lazy(() => import('./pages/rgpd'))
 const PosPage = lazy(() => import('./pages/pos'))
@@ -185,6 +186,7 @@ export default function App() {
             <Route path="/dashboard/statistiques" element={<StatistiquesPage />} />
             <Route path="/dashboard/configuration" element={<ConfigPage />} />
             <Route path="/dashboard/configuration/tva" element={<TvaPage />} />
+            <Route path="/dashboard/configuration/categories" element={<CategoriesPage />} />
             <Route path="/dashboard/rgpd" element={<RgpdPage />} />
           </Route>
         </Route>

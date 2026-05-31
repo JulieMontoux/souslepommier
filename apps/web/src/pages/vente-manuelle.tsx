@@ -22,7 +22,7 @@ type Variante = {
   poids: number | null
   prixTTC: number
   prixHT: number
-  tauxTVA: number
+  tauxTVA: { id: string; libelle: string; taux: number } | number
   venteAuPoids: boolean
   actif: boolean
 }
@@ -94,7 +94,7 @@ export default function VenteManuellePage() {
         qte: variante.venteAuPoids ? '1.000' : '1',
         remise: '0',
         prixUnitaireHT: variante.prixHT,
-        tauxTVA: variante.tauxTVA,
+        tauxTVA: typeof variante.tauxTVA === 'object' ? variante.tauxTVA.taux : variante.tauxTVA,
       },
     ])
   }

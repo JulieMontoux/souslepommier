@@ -48,6 +48,7 @@ export async function createVente(
   const varianteIds = lignes.map((l) => l.varianteProduitId);
   const variantes = await prisma.varianteProduit.findMany({
     where: { id: { in: varianteIds } },
+    include: { tauxTVA: { select: { taux: true } } },
   });
 
   const lignesComputed = lignes.map((l) => {
@@ -56,7 +57,7 @@ export async function createVente(
       throw venteError(`Variante ${l.varianteProduitId} introuvable`, 404);
     const remise = l.remise ?? 0;
     const prixUnitaireHT = Number(v.prixHT);
-    const tauxTVA = Number(v.tauxTVA);
+    const tauxTVA = Number(v.tauxTVA.taux);
     const montantHT =
       Math.round(prixUnitaireHT * l.qte * (1 - remise / 100) * 10000) / 10000;
     const montantTVA = Math.round(montantHT * (tauxTVA / 100) * 10000) / 10000;

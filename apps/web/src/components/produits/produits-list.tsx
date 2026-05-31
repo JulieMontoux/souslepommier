@@ -4,7 +4,6 @@ import { useState, useTransition } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import type { ProduitComplet } from '@/types/produits'
-import type { Categorie } from '@souslepommier/database'
 import {
   Table,
   TableBody,
@@ -14,7 +13,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { buttonVariants } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import {
   Select,
@@ -31,15 +29,13 @@ import { LabelPrintModal } from './label-print-modal'
 
 interface ProduitsListProps {
   produits: ProduitComplet[]
-  categories: Categorie[]
 }
 
-export function ProduitsList({ produits: initial, categories }: ProduitsListProps) {
+export function ProduitsList({ produits: initial }: ProduitsListProps) {
   const [isPending, startTransition] = useTransition()
   const [produits, setProduits] = useState(initial)
   const [search, setSearch] = useState('')
   const [filterStatut, setFilterStatut] = useState<'tous' | 'actif' | 'inactif'>('tous')
-  const [filterCategorie, setFilterCategorie] = useState<string>('tous')
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; nom: string } | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
   const [labelProduit, setLabelProduit] = useState<ProduitComplet | null>(null)
@@ -47,7 +43,6 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
   const filtered = produits.filter((p) => {
     if (filterStatut === 'actif' && !p.actif) return false
     if (filterStatut === 'inactif' && p.actif) return false
-    if (filterCategorie !== 'tous' && p.categorieId !== filterCategorie) return false
     if (search && !p.nom.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
@@ -131,23 +126,6 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
             <SelectItem value="inactif">Inactifs</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={filterCategorie} onValueChange={(v) => setFilterCategorie(v ?? 'tous')}>
-          <SelectTrigger className="w-44">
-            <span className="flex-1 text-left text-sm">
-              {filterCategorie === 'tous'
-                ? 'Toutes catégories'
-                : (categories.find((c) => c.id === filterCategorie)?.nom ?? 'Catégorie')}
-            </span>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="tous">Toutes catégories</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.nom}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Tableau */}
@@ -156,7 +134,6 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
           <TableHeader>
             <TableRow className="bg-zinc-50">
               <TableHead className="w-[280px]">Produit</TableHead>
-              <TableHead>Catégorie</TableHead>
               <TableHead className="text-center">Variantes</TableHead>
               <TableHead>Prix (à partir de)</TableHead>
               <TableHead className="text-center">Actif</TableHead>
@@ -166,7 +143,7 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-zinc-400">
+                <TableCell colSpan={5} className="py-12 text-center text-zinc-400">
                   Aucun produit trouvé
                 </TableCell>
               </TableRow>
@@ -192,13 +169,6 @@ export function ProduitsList({ produits: initial, categories }: ProduitsListProp
                           )}
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {produit.categorie ? (
-                        <Badge variant="secondary">{produit.categorie.nom}</Badge>
-                      ) : (
-                        <span className="text-zinc-400">—</span>
-                      )}
                     </TableCell>
                     <TableCell className="text-center">
                       <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-zinc-100 px-2 text-xs font-medium text-zinc-700">

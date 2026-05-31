@@ -1,12 +1,9 @@
 import type { Produit, VarianteProduit, Categorie } from '@souslepommier/database'
 
-export type VarianteAvecDecimal = Omit<
-  VarianteProduit,
-  'poids' | 'prixHT' | 'tauxTVA' | 'prixTTC'
-> & {
+export type VarianteAvecDecimal = Omit<VarianteProduit, 'poids' | 'prixHT'> & {
   poids: number | null
   prixHT: number
-  tauxTVA: number
+  tauxTVA: { id: string; libelle: string; taux: number }
   prixTTC: number
 }
 
@@ -16,14 +13,3 @@ export type ProduitComplet = Produit & {
   _count?: { variantes: number }
 }
 
-// Formulaire variante (react-hook-form)
-export type VarianteFormRow = {
-  id?: string // undefined = nouvelle variante (pas encore en BDD)
-  poids: string // string car input text
-  emballage: string
-  prixHT: string
-  tauxTVA: string
-  prixTTC: string // calculé live, lecture seule
-  sku: string
-  actif: boolean
-}

@@ -44,28 +44,28 @@ stockRouter.get("/alerts", async (c) => {
   const variantes = await prisma.$queryRaw<
     Array<{
       id: string;
-      produit_nom: string;
-      vente_au_poids: boolean;
-      stock_actuel: number;
-      stock_min: number;
+      produitNom: string;
+      venteAuPoids: boolean;
+      stockActuel: number;
+      stockMin: number;
     }>
   >`
-    SELECT v.id, p.nom AS produit_nom, v.vente_au_poids, v.stock_actuel, v.stock_min
+    SELECT v.id, p.nom AS "produitNom", v."venteAuPoids", v."stockActuel", v."stockMin"
     FROM variantes_produit v
-    JOIN produits p ON p.id = v.produit_id
+    JOIN produits p ON p.id = v."produitId"
     WHERE v.actif = true
-      AND v.stock_min IS NOT NULL
-      AND v.stock_actuel <= v.stock_min
-    ORDER BY v.stock_actuel ASC
+      AND v."stockMin" IS NOT NULL
+      AND v."stockActuel" <= v."stockMin"
+    ORDER BY v."stockActuel" ASC
   `;
 
   return c.json(
     variantes.map((v) => ({
       id: v.id,
-      produitNom: v.produit_nom,
-      venteAuPoids: v.vente_au_poids,
-      stockActuel: Number(v.stock_actuel),
-      stockMin: Number(v.stock_min),
+      produitNom: v.produitNom,
+      venteAuPoids: v.venteAuPoids,
+      stockActuel: Number(v.stockActuel),
+      stockMin: Number(v.stockMin),
     })),
   );
 });

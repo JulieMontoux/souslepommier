@@ -36,3 +36,39 @@ categoriesRouter.post("/", requireRole("GERANT"), async (c) => {
   });
   return c.json(categorie, 201);
 });
+
+categoriesRouter.put("/:id", requireRole("GERANT"), async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => null);
+  const parsed = categorieSchema.safeParse(body);
+  if (!parsed.success)
+    return c.json(
+      { error: "Données invalides", details: parsed.error.flatten() },
+      422,
+    );
+
+  const existing = await prisma.categorie.findUnique({ where: { id } });
+  if (!existing) return c.json({ error: "Catégorie introuvable" }, 404);
+
+  const categorie = await prisma.categorie.update({
+    where: { id },
+    data: { nom: parsed.data.nom },
+  });
+  return c.json(categorie);
+});
+
+categoriesRouter.delete("/:id", requireRole("GERANT"), async (c) => {
+  const id = c.req.param("id");
+  const existing = await prisma.categorie.findUnique({ where: { id } });
+  if (!existing) return c.json({ error: "Catégorie introuvable" }, 404);
+
+  const count = await prisma.produit.count({ where: { categorieId: id } });
+  if (count > 0)
+    return c.json(
+      { error: `Catégorie utilisée par ${count} produit(s) — déplacez-les d'abord` },
+      409,
+    );
+
+  await prisma.categorie.delete({ where: { id } });
+  return c.body(null, 204);
+});

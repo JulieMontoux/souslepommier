@@ -12,10 +12,12 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { calcPrixTTC } from '@/lib/tva'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 import { TYPE_EMBALLAGE } from '@/lib/validations/produit'
 import type { ProduitComplet } from '@/types/produits'
-import type { Categorie } from '@souslepommier/database'
+
+type TauxTVAItem = { id: string; libelle: string; taux: number; defaut: boolean; actif: boolean }
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -49,7 +51,7 @@ const varianteRowSchema = z.object({
   poids: z.string().optional(),
   emballage: z.enum(TYPE_EMBALLAGE),
   prixHT: z.string().min(1, 'Requis'),
-  tauxTVA: z.string().min(1, 'Requis'),
+  tauxTVAId: z.string().min(1, 'Requis'),
   sku: z.string().optional(),
   venteAuPoids: z.boolean().default(false),
   actif: z.boolean().default(true),
@@ -57,7 +59,6 @@ const varianteRowSchema = z.object({
 
 const formSchema = z.object({
   nom: z.string().min(1, 'Nom requis').max(100),
-  categorieId: z.string().optional(),
   description: z.string().max(500).optional(),
   actif: z.boolean().default(true),
   saisonDebutMois: z.number().int().min(1).max(12).nullable().optional(),
@@ -73,10 +74,8 @@ type FormValues = z.infer<typeof formSchema>
 
 interface ProduitFormProps {
   produit?: ProduitComplet | null
-  categories: Categorie[]
 }
 
-const TAUX_TVA_COMMUNS = [0, 5.5, 10, 20]
 const EMBALLAGE_LABELS: Record<string, string> = {
   VRAC: 'Vrac',
   BARQUETTE: 'Barquette',
@@ -397,10 +396,20 @@ function PaliersSection({
   )
 }
 
-export function ProduitForm({ produit, categories }: ProduitFormProps) {
+export function ProduitForm({ produit }: ProduitFormProps) {
   const navigate = useNavigate()
   const [isPending, startTransition] = useTransition()
   const [saving, setSaving] = useState(false)
+
+  const { data: tauxTVAList = [] } = useQuery<TauxTVAItem[]>({
+    queryKey: ['taux-tva'],
+    queryFn: () => api.get<TauxTVAItem[]>('/taux-tva'),
+    staleTime: 60_000,
+  })
+
+  function getTaux(tauxTVAId: string) {
+    return tauxTVAList.find((t) => t.id === tauxTVAId)?.taux ?? 0
+  }
   const [showLabels, setShowLabels] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(produit?.image ?? null)
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -424,7 +433,6 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
     defaultValues: {
       nom: produit?.nom ?? '',
-      categorieId: produit?.categorieId ?? undefined,
       description: produit?.description ?? '',
       actif: produit?.actif ?? true,
       saisonDebutMois: produit?.saisonDebutMois ?? null,
@@ -437,7 +445,7 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
           poids: v.poids != null ? String(v.poids) : '',
           emballage: v.emballage as (typeof TYPE_EMBALLAGE)[number],
           prixHT: String(v.prixHT),
-          tauxTVA: String(v.tauxTVA),
+          tauxTVAId: v.tauxTVA.id,
           sku: v.sku ?? '',
           venteAuPoids: (v as typeof v & { venteAuPoids?: boolean }).venteAuPoids ?? false,
           actif: v.actif,
@@ -453,17 +461,21 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
     const row = watchedVariantes?.[index]
     if (!row) return '—'
     const ht = parseFloat(row.prixHT)
-    const tva = parseFloat(row.tauxTVA)
-    if (isNaN(ht) || isNaN(tva)) return '—'
-    return calcPrixTTC(ht, tva).toFixed(2).replace('.', ',') + ' €'
+    const tva = getTaux(row.tauxTVAId)
+    if (isNaN(ht)) return '—'
+    return (ht * (1 + tva / 100)).toFixed(2).replace('.', ',') + ' €'
   }
 
   function addVariante() {
+    const defaultTVA =
+      tauxTVAList.find((t) => t.defaut && t.actif) ??
+      tauxTVAList.find((t) => t.actif) ??
+      tauxTVAList[0]
     append({
       poids: '',
       emballage: 'VRAC',
       prixHT: '',
-      tauxTVA: '5.5',
+      tauxTVAId: defaultTVA?.id ?? '',
       sku: '',
       venteAuPoids: false,
       actif: true,
@@ -543,7 +555,6 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
       // 1. Créer ou mettre à jour le produit
       const produitPayload = {
         nom: data.nom,
-        categorieId: data.categorieId || null,
         description: data.description || null,
         image: null,
         actif: data.actif,
@@ -589,7 +600,7 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
           poids: isNaN(poidsNum as number) ? null : poidsNum,
           emballage: variante.emballage,
           prixHT: parseFloat(variante.prixHT),
-          tauxTVA: parseFloat(variante.tauxTVA),
+          tauxTVAId: variante.tauxTVAId,
           sku: variante.sku || null,
           venteAuPoids: variante.venteAuPoids ?? false,
           actif: variante.actif,
@@ -674,31 +685,6 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
             </Label>
             <Input id="nom" {...register('nom')} placeholder="Ex: Pomme Golden" />
             {fieldError(errors.nom?.message)}
-          </div>
-
-          <div>
-            <Label htmlFor="categorieId">Catégorie</Label>
-            <Select
-              defaultValue={produit?.categorieId ?? ''}
-              onValueChange={(v) => setValue('categorieId', v || undefined)}
-            >
-              <SelectTrigger id="categorieId">
-                <span className="flex-1 text-left text-sm">
-                  {watch('categorieId')
-                    ? (categories.find((c) => c.id === watch('categorieId'))?.nom ??
-                      'Sans catégorie')
-                    : 'Sélectionner…'}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Sans catégorie</SelectItem>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nom}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="flex items-center gap-3 pt-6">
@@ -864,16 +850,16 @@ export function ProduitForm({ produit, categories }: ProduitFormProps) {
                     </TableCell>
                     <TableCell>
                       <Select
-                        defaultValue={field.tauxTVA ?? '5.5'}
-                        onValueChange={(v) => setValue(`variantes.${index}.tauxTVA`, v ?? '')}
+                        value={watchedVariantes[index]?.tauxTVAId ?? ''}
+                        onValueChange={(v) => setValue(`variantes.${index}.tauxTVAId`, v ?? '')}
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="TVA…" />
                         </SelectTrigger>
                         <SelectContent>
-                          {TAUX_TVA_COMMUNS.map((t) => (
-                            <SelectItem key={t} value={String(t)}>
-                              {t}%
+                          {tauxTVAList.filter((t) => t.actif).map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.taux}% — {t.libelle}
                             </SelectItem>
                           ))}
                         </SelectContent>

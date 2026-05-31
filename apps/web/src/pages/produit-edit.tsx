@@ -16,20 +16,15 @@ export default function ProduitEditPage() {
           ...v,
           poids: v.poids != null ? Number(v.poids) : null,
           prixHT: Number(v.prixHT),
-          tauxTVA: Number(v.tauxTVA),
+          tauxTVA: { id: v.tauxTVA.id, libelle: v.tauxTVA.libelle, taux: Number(v.tauxTVA.taux) },
           prixTTC: Number(v.prixTTC),
         })),
       })),
     enabled: !!id,
   })
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => api.get<{ id: string; nom: string }[]>('/categories'),
-  })
-
   if (produitLoading) return <div className="bg-muted h-48 animate-pulse rounded-xl" />
   if (!produit) return <Navigate to="/dashboard/produits" replace />
 
-  return <ProduitForm produit={produit} categories={categories} />
+  return <ProduitForm produit={produit} />
 }

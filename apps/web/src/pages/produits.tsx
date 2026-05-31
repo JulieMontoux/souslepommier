@@ -14,17 +14,11 @@ export default function ProduitsPage() {
             ...v,
             poids: v.poids != null ? Number(v.poids) : null,
             prixHT: Number(v.prixHT),
-            tauxTVA: Number(v.tauxTVA),
             prixTTC: Number(v.prixTTC),
           })),
         }))
       ),
   })
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => api.get<{ id: string; nom: string }[]>('/categories'),
-  })
-
-  return <ProduitsList produits={produits} categories={categories} />
+  return <ProduitsList produits={produits} />
 }

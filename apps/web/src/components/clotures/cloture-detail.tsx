@@ -1,14 +1,22 @@
 'use client'
 
-import React from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowLeft, Download, Shield } from 'lucide-react'
-import { buttonVariants } from '@/components/ui/button'
+import React, { useTransition } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Download, LockOpen, Shield } from 'lucide-react'
+import { toast } from 'sonner'
+import { buttonVariants, Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/auth'
 import type { ClotureDetail } from '@/types/cloture'
 
 function fmt(n: number) {
   return n.toFixed(2).replace('.', ',') + ' €'
+}
+
+function isTodayParis(dateStr: string): boolean {
+  const fmt = (d: Date) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(d)
+  return fmt(new Date(dateStr)) === fmt(new Date())
 }
 
 interface ClotureDetailViewProps {
@@ -16,6 +24,12 @@ interface ClotureDetailViewProps {
 }
 
 export function ClotureDetailView({ cloture }: ClotureDetailViewProps) {
+  const { state } = useAuth()
+  const navigate = useNavigate()
+  const [isPending, startTransition] = useTransition()
+  const isGerant = state.status === 'authenticated' && state.user.role === 'GERANT'
+  const isToday = isTodayParis(cloture.date)
+
   const dateStr = new Date(cloture.date).toLocaleDateString('fr-FR', {
     weekday: 'long',
     day: 'numeric',
@@ -26,6 +40,18 @@ export function ClotureDetailView({ cloture }: ClotureDetailViewProps) {
     hour: '2-digit',
     minute: '2-digit',
   })
+
+  function handleReouverture() {
+    startTransition(async () => {
+      const res = await fetch('/api/clotures/today', { method: 'DELETE' })
+      if (!res.ok) {
+        toast.error('Impossible de rouvrir la caisse')
+        return
+      }
+      toast.success('Caisse rouverte — journée en cours maintenue')
+      navigate('/dashboard/clotures')
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -45,15 +71,28 @@ export function ClotureDetailView({ cloture }: ClotureDetailViewProps) {
             {dateStr} — Clôturée à {heureStr} par {cloture.gerantPrenom} {cloture.gerantNom}
           </p>
         </div>
-        <a
-          href={`/api/clotures/${cloture.id}/pdf`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(buttonVariants({ variant: 'outline' }), 'gap-1.5')}
-        >
-          <Download className="h-4 w-4" />
-          Télécharger PDF
-        </a>
+        <div className="flex items-center gap-2">
+          {isGerant && isToday && (
+            <Button
+              variant="outline"
+              className="gap-1.5"
+              onClick={handleReouverture}
+              disabled={isPending}
+            >
+              <LockOpen className="h-4 w-4" />
+              Rouvrir la caisse
+            </Button>
+          )}
+          <a
+            href={`/api/clotures/${cloture.id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(buttonVariants({ variant: 'outline' }), 'gap-1.5')}
+          >
+            <Download className="h-4 w-4" />
+            Télécharger PDF
+          </a>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

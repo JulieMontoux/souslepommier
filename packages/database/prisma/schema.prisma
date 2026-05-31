@@ -1,5 +1,6 @@
 // Schéma Prisma — Sous le Pommier
-// Modèle complet défini dans l'issue #3
+// Normalisé 3FN (Merise N3) : FK vers TauxTVA, UnitePoids matérialisée,
+// prixTTC retiré (calculé à la volée : prixHT × (1 + tauxTVA.taux/100))
 
 generator client {
   provider = "prisma-client"
@@ -78,25 +79,25 @@ enum StatutLivraison {
 // ─── Utilisateurs ────────────────────────────────────────────────────────────
 
 model User {
-  id              String   @id @default(cuid())
-  username        String   @unique
-  email           String?  @unique
+  id              String    @id @default(cuid())
+  username        String    @unique
+  email           String?   @unique
   nom             String
   prenom          String
-  role            Role     @default(VENDEUR)
-  actif           Boolean  @default(true)
+  role            Role      @default(VENDEUR)
+  actif           Boolean   @default(true)
   passwordHash    String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   lastLoginAt     DateTime?
-  rgpdConsent     Boolean  @default(false)
+  rgpdConsent     Boolean   @default(false)
   rgpdConsentDate DateTime?
 
-  ventes               Vente[]
-  clotures             ClotureCaisse[]
-  auditActions         JournalAudit[]
-  mouvementsStock      MouvementStock[]
-  passwordResetTokens  PasswordResetToken[]
+  ventes              Vente[]
+  clotures            ClotureCaisse[]
+  auditActions        JournalAudit[]
+  mouvementsStock     MouvementStock[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
@@ -115,6 +116,36 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+// ─── Référentiel TVA ─────────────────────────────────────────────────────────
+
+model TauxTVA {
+  id          String   @id @default(cuid())
+  libelle     String
+  taux        Decimal  @db.Decimal(5, 2)
+  actif       Boolean  @default(true)
+  defaut      Boolean  @default(false)
+  dateEffet   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  variantes VarianteProduit[]
+
+  @@map("taux_tva")
+}
+
+// ─── Référentiel unités de poids / conditionnement ───────────────────────────
+
+model UnitePoids {
+  id      String  @id @default(cuid())
+  // symbole affiché (kg, g, L, pce, botte…)
+  symbole String  @unique
+  libelle String
+  actif   Boolean @default(true)
+
+  variantes VarianteProduit[]
+
+  @@map("unites_poids")
+}
+
 // ─── Produits ─────────────────────────────────────────────────────────────────
 
 model Categorie {
@@ -126,11 +157,11 @@ model Categorie {
 }
 
 model Produit {
-  id          String    @id @default(cuid())
-  nom         String
-  categorieId String?
-  image       String?
-  description String?
+  id              String   @id @default(cuid())
+  nom             String
+  categorieId     String?
+  image           String?
+  description     String?
   actif           Boolean  @default(true)
   saisonDebutMois Int?
   saisonDebutJour Int?
@@ -146,29 +177,37 @@ model Produit {
 }
 
 model VarianteProduit {
-  id          String        @id @default(cuid())
-  produitId   String
-  poids       Decimal?      @db.Decimal(10, 3)
+  id           String        @id @default(cuid())
+  produitId    String
+  // Conditionnement
+  poids        Decimal?      @db.Decimal(10, 3)
   unitePoidsId String?
-  emballage   TypeEmballage @default(VRAC)
-  prixHT      Decimal       @db.Decimal(10, 4)
-  tauxTVA     Decimal       @db.Decimal(5, 2)
-  prixTTC     Decimal       @db.Decimal(10, 4)
+  emballage    TypeEmballage @default(VRAC)
+  // Prix — N3 : prixTTC retiré (calculé = prixHT × (1 + tauxTVA.taux/100))
+  prixHT       Decimal       @db.Decimal(10, 4)
+  tauxTVAId    String
+  // Vente
   sku          String?       @unique
   venteAuPoids Boolean       @default(false)
+  // Stock (dénormalisation justifiée : lecture très fréquente, écriture rare)
   stockActuel  Decimal       @default(0) @db.Decimal(10, 3)
   stockMin     Decimal?      @db.Decimal(10, 3)
   actif        Boolean       @default(true)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  produit         Produit          @relation(fields: [produitId], references: [id])
-  lignesVente      LigneVente[]
-  mouvementsStock  MouvementStock[]
-  paliers          PalierRemise[]
-  lignesAbonnement LigneAbonnement[]
+  produit    Produit    @relation(fields: [produitId], references: [id])
+  tauxTVA    TauxTVA    @relation(fields: [tauxTVAId], references: [id])
+  unitePoids UnitePoids? @relation(fields: [unitePoidsId], references: [id])
+
+  lignesVente        LigneVente[]
+  mouvementsStock    MouvementStock[]
+  paliers            PalierRemise[]
+  lignesAbonnement   LigneAbonnement[]
   lignesBonLivraison LigneBonLivraison[]
 
+  @@index([produitId])
+  @@index([tauxTVAId])
   @@map("variantes_produit")
 }
 
@@ -177,7 +216,8 @@ model PalierRemise {
   varianteId String
   qteMin     Decimal         @db.Decimal(10, 3)
   remisePct  Decimal         @db.Decimal(5, 2)
-  variante   VarianteProduit @relation(fields: [varianteId], references: [id], onDelete: Cascade)
+
+  variante VarianteProduit @relation(fields: [varianteId], references: [id], onDelete: Cascade)
 
   @@index([varianteId])
   @@map("paliers_remise")
@@ -186,21 +226,22 @@ model PalierRemise {
 // ─── Ventes ──────────────────────────────────────────────────────────────────
 
 model Vente {
-  id            String      @id @default(cuid())
-  numeroTicket  String      @unique
-  vendeurId     String
-  date          DateTime    @default(now())
-  totalHT       Decimal     @db.Decimal(10, 4)
-  totalTTC      Decimal     @db.Decimal(10, 4)
-  totalTVA      Decimal     @db.Decimal(10, 4)
-  statut        StatutVente @default(OUVERTE)
-  hash          String
-  hashPrecedent String?
-  motifAnnulation  String?
-  pointDeVenteId   String?
-  clientId         String?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  id              String      @id @default(cuid())
+  numeroTicket    String      @unique
+  vendeurId       String
+  date            DateTime    @default(now())
+  // Totaux stockés : snapshot légal immuable (obligation fiscale française)
+  totalHT         Decimal     @db.Decimal(10, 4)
+  totalTTC        Decimal     @db.Decimal(10, 4)
+  totalTVA        Decimal     @db.Decimal(10, 4)
+  statut          StatutVente @default(OUVERTE)
+  hash            String
+  hashPrecedent   String?
+  motifAnnulation String?
+  pointDeVenteId  String?
+  clientId        String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   vendeur      User          @relation(fields: [vendeurId], references: [id])
   pointDeVente PointDeVente? @relation(fields: [pointDeVenteId], references: [id])
@@ -208,42 +249,50 @@ model Vente {
   lignes       LigneVente[]
   paiements    Paiement[]
   bonsLivraison BonLivraison[]
-  livraisons    Livraison[]
+  livraisons   Livraison[]
+  mouvementsStock MouvementStock[]
 
   @@index([date])
   @@index([vendeurId])
+  @@index([statut])
+  @@index([clientId])
+  @@index([pointDeVenteId])
   @@map("ventes")
 }
 
 model LigneVente {
-  id              String   @id @default(cuid())
-  venteId         String
+  id                String  @id @default(cuid())
+  venteId           String
   varianteProduitId String
-  qte             Decimal  @db.Decimal(10, 3)
-  prixUnitaireHT  Decimal  @db.Decimal(10, 4)
-  tauxTVA         Decimal  @db.Decimal(5, 2)
-  montantHT       Decimal  @db.Decimal(10, 4)
-  montantTVA      Decimal  @db.Decimal(10, 4)
-  montantTTC      Decimal  @db.Decimal(10, 4)
-  remise          Decimal  @default(0) @db.Decimal(5, 2)
+  qte               Decimal @db.Decimal(10, 3)
+  // Snapshot prix au moment de la vente (immuable par obligation fiscale)
+  prixUnitaireHT    Decimal @db.Decimal(10, 4)
+  tauxTVA           Decimal @db.Decimal(5, 2)
+  montantHT         Decimal @db.Decimal(10, 4)
+  montantTVA        Decimal @db.Decimal(10, 4)
+  montantTTC        Decimal @db.Decimal(10, 4)
+  remise            Decimal @default(0) @db.Decimal(5, 2)
 
   vente    Vente           @relation(fields: [venteId], references: [id])
   variante VarianteProduit @relation(fields: [varianteProduitId], references: [id])
 
+  @@index([venteId])
+  @@index([varianteProduitId])
   @@map("lignes_vente")
 }
 
 model Paiement {
-  id             String        @id @default(cuid())
-  venteId        String
-  mode           ModeReglement
-  montant        Decimal       @db.Decimal(10, 4)
-  renduMonnaie   Decimal       @default(0) @db.Decimal(10, 4)
-  reference      String?
-  createdAt      DateTime      @default(now())
+  id           String        @id @default(cuid())
+  venteId      String
+  mode         ModeReglement
+  montant      Decimal       @db.Decimal(10, 4)
+  renduMonnaie Decimal       @default(0) @db.Decimal(10, 4)
+  reference    String?
+  createdAt    DateTime      @default(now())
 
   vente Vente @relation(fields: [venteId], references: [id])
 
+  @@index([venteId])
   @@map("paiements")
 }
 
@@ -264,14 +313,16 @@ model MouvementStock {
   motif      String?
   venteId    String?
   userId     String
+  createdAt  DateTime      @default(now())
 
-  variante   VarianteProduit @relation(fields: [varianteId], references: [id])
-  user       User            @relation(fields: [userId], references: [id])
-
-  createdAt  DateTime @default(now())
+  variante VarianteProduit @relation(fields: [varianteId], references: [id])
+  user     User            @relation(fields: [userId], references: [id])
+  vente    Vente?          @relation(fields: [venteId], references: [id])
 
   @@index([varianteId])
   @@index([createdAt])
+  @@index([userId])
+  @@index([venteId])
   @@map("mouvements_stock")
 }
 
@@ -283,6 +334,7 @@ model ClotureCaisse {
   date           DateTime
   gerantId       String
   nbVentes       Int      @default(0)
+  // Totaux par mode et globaux : snapshot immuable pour comptabilité
   totalEspeces   Decimal  @db.Decimal(10, 4)
   totalCB        Decimal  @db.Decimal(10, 4)
   totalCheque    Decimal  @db.Decimal(10, 4)
@@ -343,6 +395,7 @@ model BonLivraison {
   dateLivraison     DateTime?
   statut            StatutBL  @default(BROUILLON)
   remiseCommerciale Decimal?  @db.Decimal(5, 2)
+  // Snapshot total : immuable une fois le BL émis
   totalHT           Decimal   @db.Decimal(10, 4)
   notes             String?
   createdAt         DateTime  @default(now())
@@ -361,11 +414,13 @@ model LigneBonLivraison {
   id                String  @id @default(cuid())
   bonLivraisonId    String
   varianteProduitId String?
+  // Snapshot désignation au moment du BL (le nom produit peut changer)
   designation       String
   qte               Decimal @db.Decimal(10, 3)
   unite             String?
   prixUnitaireHT    Decimal @db.Decimal(10, 4)
   remise            Decimal @default(0) @db.Decimal(5, 2)
+  // Snapshot montant : calculé à l'émission, immuable ensuite
   montantHT         Decimal @db.Decimal(10, 4)
 
   bonLivraison BonLivraison     @relation(fields: [bonLivraisonId], references: [id], onDelete: Cascade)
@@ -379,16 +434,16 @@ model LigneBonLivraison {
 // ─── Audit ────────────────────────────────────────────────────────────────────
 
 model JournalAudit {
-  id           String   @id @default(cuid())
-  userId       String?
-  action       String
-  entite       String
-  entiteId     String?
+  id             String   @id @default(cuid())
+  userId         String?
+  action         String
+  entite         String
+  entiteId       String?
   ancienneValeur Json?
   nouvelleValeur Json?
-  ip           String?
-  userAgent    String?
-  timestamp    DateTime @default(now())
+  ip             String?
+  userAgent      String?
+  timestamp      DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id])
 
@@ -401,7 +456,7 @@ model JournalAudit {
 // ─── Configuration entreprise ────────────────────────────────────────────────
 
 model ConfigEntreprise {
-  id                    String  @id @default(cuid())
+  id                    String   @id @default(cuid())
   raisonSociale         String
   formeJuridique        String?
   capitalSocial         Decimal? @db.Decimal(15, 2)
@@ -410,7 +465,7 @@ model ConfigEntreprise {
   adresse               String?
   codePostal            String?
   ville                 String?
-  pays                  String  @default("FR")
+  pays                  String   @default("FR")
   telephone             String?
   email                 String?
   logoUrl               String?
@@ -418,7 +473,7 @@ model ConfigEntreprise {
   rcs                   String?
   villeRCS              String?
   codeAPE               String?
-  regimeTVA             String  @default("NORMAL")
+  regimeTVA             String   @default("NORMAL")
   responsableRGPD       String?
   emailRGPD             String?
   smtpHost              String?
@@ -426,7 +481,7 @@ model ConfigEntreprise {
   smtpUser              String?
   smtpPass              String?
   smtpFrom              String?
-  smtpTls               Boolean @default(true)
+  smtpTls               Boolean  @default(true)
 
   @@map("config_entreprise")
 }
@@ -434,46 +489,32 @@ model ConfigEntreprise {
 // ─── RGPD ────────────────────────────────────────────────────────────────────
 
 model DemandeRGPD {
-  id          String            @id @default(cuid())
-  type        TypeDroitRGPD
-  statut      StatutDemandeRGPD @default(EN_ATTENTE)
-  nom         String
-  email       String
-  message     String?
-  reponse     String?
-  traitePar   String?
-  traiteAt    DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id        String            @id @default(cuid())
+  type      TypeDroitRGPD
+  statut    StatutDemandeRGPD @default(EN_ATTENTE)
+  nom       String
+  email     String
+  message   String?
+  reponse   String?
+  traitePar String?
+  traiteAt  DateTime?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
   @@index([statut])
   @@map("demandes_rgpd")
 }
 
-// ─── Taux TVA ────────────────────────────────────────────────────────────────
-
-model TauxTVA {
-  id          String   @id @default(cuid())
-  libelle     String
-  taux        Decimal  @db.Decimal(5, 2)
-  actif       Boolean  @default(true)
-  defaut      Boolean  @default(false)
-  dateEffet   DateTime @default(now())
-  createdAt   DateTime @default(now())
-
-  @@map("taux_tva")
-}
-
 // ─── Points de vente ─────────────────────────────────────────────────────────
 
 model PointDeVente {
-  id       String @id @default(cuid())
-  nom      String
-  actif    Boolean @default(true)
+  id        String   @id @default(cuid())
+  nom       String
+  actif     Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  ventes    Vente[]
-  clotures  ClotureCaisse[]
+  ventes   Vente[]
+  clotures ClotureCaisse[]
 
   @@map("points_de_vente")
 }
@@ -506,6 +547,7 @@ model LigneAbonnement {
   abonnement Abonnement      @relation(fields: [abonnementId], references: [id], onDelete: Cascade)
   variante   VarianteProduit @relation(fields: [varianteProduitId], references: [id])
 
+  @@unique([abonnementId, varianteProduitId])
   @@index([abonnementId])
   @@map("lignes_abonnement")
 }
@@ -526,4 +568,3 @@ model Livraison {
   @@index([date])
   @@map("livraisons")
 }
-
