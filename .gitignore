@@ -89,3 +89,5 @@ apps/api/dist/
 .claude/
 
 *.npmrc
+
+graphify-out/
