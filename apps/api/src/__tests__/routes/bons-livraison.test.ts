@@ -354,6 +354,151 @@ describe("PATCH /api/bons-livraison/:id/statut", () => {
   });
 });
 
+describe("POST /api/bons-livraison/:id/dupliquer", () => {
+  it("404 when original not found", async () => {
+    mockFindUnique.mockResolvedValueOnce(null);
+    const app = await makeApp();
+    const res = await app.request("/api/bons-livraison/missing/dupliquer", {
+      method: "POST",
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it("201 duplicates with previous BL (seq parses)", async () => {
+    mockFindUnique.mockResolvedValueOnce(MOCK_BL);
+    mockTransaction.mockImplementationOnce(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          bonLivraison: {
+            findFirst: vi.fn().mockResolvedValue({ numero: "BL-2026-000005" }),
+            create: vi.fn().mockResolvedValue({ ...MOCK_BL, numero: "BL-2026-000006" }),
+          },
+        };
+        return fn(tx);
+      },
+    );
+    const app = await makeApp();
+    const res = await app.request("/api/bons-livraison/bl-1/dupliquer", {
+      method: "POST",
+    });
+    expect(res.status).toBe(201);
+  });
+
+  it("201 duplicates first BL ever (no previous, NaN branch)", async () => {
+    mockFindUnique.mockResolvedValueOnce(MOCK_BL);
+    mockTransaction.mockImplementationOnce(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          bonLivraison: {
+            findFirst: vi.fn().mockResolvedValue(null),
+            create: vi.fn().mockResolvedValue({ ...MOCK_BL, numero: "BL-2026-000001" }),
+          },
+        };
+        return fn(tx);
+      },
+    );
+    const app = await makeApp();
+    const res = await app.request("/api/bons-livraison/bl-1/dupliquer", {
+      method: "POST",
+    });
+    expect(res.status).toBe(201);
+  });
+
+  it("201 duplicates with NaN sequence falls back to 1", async () => {
+    mockFindUnique.mockResolvedValueOnce(MOCK_BL);
+    mockTransaction.mockImplementationOnce(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          bonLivraison: {
+            findFirst: vi.fn().mockResolvedValue({ numero: "BL-2026-XXX" }),
+            create: vi.fn().mockResolvedValue({ ...MOCK_BL, numero: "BL-2026-000001" }),
+          },
+        };
+        return fn(tx);
+      },
+    );
+    const app = await makeApp();
+    const res = await app.request("/api/bons-livraison/bl-1/dupliquer", {
+      method: "POST",
+    });
+    expect(res.status).toBe(201);
+  });
+});
+
+describe("POST /api/bons-livraison — number generation branches", () => {
+  it("computes sequence from prior BL", async () => {
+    mockTransaction.mockImplementationOnce(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          bonLivraison: {
+            findFirst: vi.fn().mockResolvedValue({ numero: "BL-2026-000010" }),
+            create: vi.fn().mockResolvedValue(MOCK_BL),
+          },
+        };
+        return fn(tx);
+      },
+    );
+    const app = await makeApp();
+    const res = await app.request("/api/bons-livraison", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: "client-1",
+        lignes: [{ designation: "Pommes", qte: 10, prixUnitaireHT: 10, remise: 5 }],
+        remiseCommerciale: 10,
+        venteId: "vente-1",
+        dateLivraison: "2026-02-01",
+        notes: "x",
+      }),
+    });
+    expect(res.status).toBe(201);
+  });
+
+  it("handles NaN sequence in prior BL number", async () => {
+    mockTransaction.mockImplementationOnce(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          bonLivraison: {
+            findFirst: vi.fn().mockResolvedValue({ numero: "BL-2026-XXX" }),
+            create: vi.fn().mockResolvedValue(MOCK_BL),
+          },
+        };
+        return fn(tx);
+      },
+    );
+    const app = await makeApp();
+    const res = await app.request("/api/bons-livraison", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: "client-1",
+        lignes: [{ designation: "Pommes", qte: 1, prixUnitaireHT: 1 }],
+      }),
+    });
+    expect(res.status).toBe(201);
+  });
+});
+
+describe("GET /api/bons-livraison/:id/pdf with config", () => {
+  it("returns PDF with config data", async () => {
+    mockFindUnique.mockResolvedValueOnce(MOCK_BL);
+    const { prisma } = await import("../../lib/prisma.js");
+    (prisma.configEntreprise.findUnique as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      raisonSociale: "X",
+      siret: null,
+      tvaIntracommunautaire: null,
+      adresse: null,
+      codePostal: null,
+      ville: null,
+      telephone: null,
+      email: null,
+    });
+    const app = await makeApp();
+    const res = await app.request("/api/bons-livraison/bl-1/pdf");
+    expect(res.status).toBe(200);
+  });
+});
+
 describe("GET /api/bons-livraison/:id/pdf", () => {
   it("returns PDF buffer with correct content-type", async () => {
     mockFindUnique.mockResolvedValueOnce(MOCK_BL);

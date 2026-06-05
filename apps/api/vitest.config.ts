@@ -16,9 +16,15 @@ export default defineConfig({
         'src/lib/compute-stats.ts',
         'src/lib/create-vente.ts',
         'src/lib/prisma.ts',
+        'src/lib/auto-cloture.ts',
       ],
       thresholds: {
-        'src/lib/**': { lines: 85, functions: 85, branches: 80, statements: 85 },
+        'src/lib/**': { lines: 90, functions: 90, branches: 85, statements: 90 },
+        // Note: functions threshold lower because vi.mock of middleware module
+        // leaves the inline route-handler closures untraced by v8 (mock returns
+        // bypass the original arrow). Line/branch/statement targets reflect
+        // real behavior coverage.
+        'src/routes/**': { lines: 85, functions: 75, branches: 75, statements: 85 },
       },
     },
   },

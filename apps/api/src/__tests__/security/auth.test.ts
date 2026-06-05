@@ -144,4 +144,21 @@ describe("requireRole — OWASP A01", () => {
     const res = await app.request("/admin");
     expect(res.status).toBe(401);
   });
+
+  it("401 invalid token on requireRole route", async () => {
+    const app = await makeApp(ACTIVE_GERANT, "GERANT");
+    const res = await app.request("/admin", {
+      headers: { Cookie: "session=garbage.jwt.token" },
+    });
+    expect(res.status).toBe(401);
+    expect((await res.json()).error).toMatch(/session expirée/i);
+  });
+
+  it("401 disabled user on requireRole route", async () => {
+    const app = await makeApp(INACTIVE_USER, "GERANT");
+    const cookie = await validCookie();
+    const res = await app.request("/admin", { headers: { Cookie: cookie } });
+    expect(res.status).toBe(401);
+    expect((await res.json()).error).toMatch(/désactivé/i);
+  });
 });
