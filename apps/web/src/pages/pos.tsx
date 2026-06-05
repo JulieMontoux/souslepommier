@@ -24,10 +24,9 @@ type ConfigApi = {
 export default function PosPage() {
   const { state } = useAuth()
   const user = state.status === 'authenticated' ? state.user : null
-  const [pointDeVenteId, setPointDeVenteId] = useState<string>(
+  const [selectedPdvId, setSelectedPdvId] = useState<string>(
     () => localStorage.getItem(PDV_STORAGE_KEY) ?? ''
   )
-  const [pdvConfirmed, setPdvConfirmed] = useState(false)
 
   const { data: pdvs = [], isLoading: pdvsLoading } = useQuery<PointDeVente[]>({
     queryKey: ['points-de-vente'],
@@ -41,21 +40,16 @@ export default function PosPage() {
     staleTime: 120_000,
   })
 
+  // Derive effective PDV id: auto-select when exactly 1 PDV
+  const pointDeVenteId = !pdvsLoading && pdvs.length === 1 ? pdvs[0].id : selectedPdvId
+
+  // Derive confirmed: no modal needed when 0 or 1 PDV, or user already picked one
+  const pdvConfirmed = !pdvsLoading && (pdvs.length <= 1 || !!selectedPdvId)
+
   useEffect(() => {
     if (pointDeVenteId) localStorage.setItem(PDV_STORAGE_KEY, pointDeVenteId)
     else localStorage.removeItem(PDV_STORAGE_KEY)
   }, [pointDeVenteId])
-
-  // Auto-select when exactly 1 PDV
-  useEffect(() => {
-    if (pdvsLoading) return
-    if (pdvs.length === 1) {
-      setPointDeVenteId(pdvs[0].id)
-      setPdvConfirmed(true)
-    } else if (pdvs.length === 0) {
-      setPdvConfirmed(true)
-    }
-  }, [pdvs, pdvsLoading])
 
   const { data: produits = [], isLoading: l1 } = useQuery<ProduitPOS[]>({
     queryKey: ['produits', 'pos'],
@@ -146,10 +140,7 @@ export default function PosPage() {
                 {pdvs.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => {
-                      setPointDeVenteId(p.id)
-                      setPdvConfirmed(true)
-                    }}
+                    onClick={() => setSelectedPdvId(p.id)}
                     className={`w-full rounded-lg border px-4 py-3 text-left text-sm font-medium transition-colors ${
                       pointDeVenteId === p.id
                         ? 'border-[#4A8A7A] bg-[#EAF3F0] text-[#2D4A3E]'
