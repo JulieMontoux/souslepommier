@@ -14,7 +14,6 @@ import {
 import { LogOut, KeyRound, WifiOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { CommandPalette } from './command-palette'
 import { useAuth } from '@/contexts/auth'
 import { useNetwork } from '@/hooks/use-network'
 
@@ -77,8 +76,6 @@ export function Header({ user }: HeaderProps) {
               Sous le Pommier
             </span>
           </div>
-          <div className="bg-border h-5 w-px" />
-          <CommandPalette />
           {!online && (
             <span className="flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700 dark:bg-red-950/50 dark:text-red-400">
               <WifiOff className="h-3.5 w-3.5" />

@@ -89,48 +89,48 @@ export function CommandPalette() {
       </button>
 
       {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[20vh] backdrop-blur-sm"
-          onClick={() => setOpen(false)}
-        >
-          <Command
-            className="w-full max-w-lg overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center border-b border-zinc-100 px-4 dark:border-zinc-800">
-              <Search className="mr-3 h-4 w-4 shrink-0 text-zinc-400" />
-              <Command.Input
-                autoFocus
-                placeholder="Chercher une page…"
-                className="flex-1 bg-transparent py-3.5 text-sm outline-none placeholder:text-zinc-400 dark:text-zinc-100"
-              />
-            </div>
-            <Command.List className="max-h-72 overflow-y-auto p-2">
-              <Command.Empty className="px-4 py-6 text-center text-sm text-zinc-500">
-                Aucun résultat.
-              </Command.Empty>
-              {groups.map((group) => (
-                <Command.Group
-                  key={group}
-                  heading={group}
-                  className="[&_[cmdk-group-heading]]:mb-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-zinc-400"
-                >
-                  {NAV_ITEMS.filter((i) => i.group === group).map((item) => (
-                    <Command.Item
-                      key={item.href}
-                      value={item.label}
-                      onSelect={() => handleNavigate(item.href)}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-700 aria-selected:bg-zinc-100 dark:text-zinc-300 dark:aria-selected:bg-zinc-800"
-                    >
-                      <item.icon className="h-4 w-4 text-zinc-400" />
-                      {item.label}
-                    </Command.Item>
-                  ))}
-                </Command.Group>
-              ))}
-            </Command.List>
-          </Command>
-        </div>
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+          />
+          <div className="fixed top-1/3 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 px-4">
+            <Command className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl">
+              <div className="flex items-center border-b border-zinc-100 px-4">
+                <Search className="mr-3 h-4 w-4 shrink-0 text-zinc-400" />
+                <Command.Input
+                  autoFocus
+                  placeholder="Chercher une page…"
+                  className="flex-1 bg-transparent py-3.5 text-sm outline-none placeholder:text-zinc-400"
+                />
+              </div>
+              <Command.List className="max-h-64 overflow-y-auto p-2">
+                <Command.Empty className="px-4 py-6 text-center text-sm text-zinc-500">
+                  Aucun résultat.
+                </Command.Empty>
+                {groups.map((group) => (
+                  <Command.Group
+                    key={group}
+                    heading={group}
+                    className="[&_[cmdk-group-heading]]:mb-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-zinc-400"
+                  >
+                    {NAV_ITEMS.filter((i) => i.group === group).map((item) => (
+                      <Command.Item
+                        key={item.href}
+                        value={item.label}
+                        onSelect={() => handleNavigate(item.href)}
+                        className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-700 aria-selected:bg-zinc-100"
+                      >
+                        <item.icon className="h-4 w-4 text-zinc-400" />
+                        {item.label}
+                      </Command.Item>
+                    ))}
+                  </Command.Group>
+                ))}
+              </Command.List>
+            </Command>
+          </div>
+        </>
       )}
     </>
   )
