@@ -70,7 +70,14 @@ export function Header({ user }: HeaderProps) {
   return (
     <>
       <header className="border-border bg-card/80 flex h-14 shrink-0 items-center justify-between gap-4 border-b px-6 shadow-sm backdrop-blur-sm">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5">
+            <img src="/favicon.svg" alt="Sous le Pommier" className="h-7 w-7 rounded-md object-contain" />
+            <span className="hidden text-base font-bold tracking-tight sm:block" style={{ fontFamily: "'Nunito', sans-serif", color: '#2D4A3E' }}>
+              Sous le Pommier
+            </span>
+          </div>
+          <div className="bg-border h-5 w-px" />
           <CommandPalette />
           {!online && (
             <span className="flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700 dark:bg-red-950/50 dark:text-red-400">

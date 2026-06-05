@@ -147,7 +147,7 @@ export default function DashboardPage() {
                   })
                 }
               />
-              <Bar dataKey="caTTC" fill="#16a34a" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="caTTC" fill="#8DC7B3" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Leaf } from 'lucide-react'
 import { useAuth } from '@/contexts/auth'
 import { ApiError } from '@/lib/api'
 
@@ -67,8 +66,8 @@ export function LoginForm() {
   return (
     <Card className="relative z-10 w-full max-w-sm border-slate-200 bg-white shadow-2xl">
       <CardHeader className="space-y-1 pb-4 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-600 shadow-lg shadow-green-900/40">
-          <Leaf className="h-6 w-6 text-white" />
+        <div className="mx-auto mb-3">
+          <img src="/favicon.svg" alt="Sous le Pommier" className="h-14 w-14 rounded-xl object-contain" />
         </div>
         <CardTitle className="text-xl font-semibold text-slate-900">Sous le Pommier</CardTitle>
         <CardDescription className="text-slate-500">

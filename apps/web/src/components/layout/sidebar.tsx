@@ -18,7 +18,6 @@ import {
   Percent,
   ShieldAlert,
   CreditCard,
-  Leaf,
   Warehouse,
   Repeat2,
   MapPin,
@@ -76,16 +75,14 @@ export function Sidebar() {
   const role = state.status === 'authenticated' ? state.user.role : null
 
   return (
-    <aside className="border-sidebar-border bg-sidebar flex h-full w-60 shrink-0 flex-col border-r">
-      <div className="border-sidebar-border flex h-14 shrink-0 items-center gap-3 border-b px-5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-green-600 shadow-sm">
-          <Leaf className="h-4 w-4 text-white" />
-        </div>
+    <aside className="border-sidebar-border bg-sidebar flex h-full w-60 shrink-0 flex-col border-r shadow-md">
+      <div className="border-sidebar-border flex h-14 shrink-0 items-center gap-3 border-b px-4">
+        <img src="/favicon.svg" alt="Sous le Pommier" className="h-9 w-9 shrink-0 rounded-lg object-contain" />
         <div>
-          <span className="text-sidebar-foreground text-sm leading-tight font-bold">
+          <span className="text-sidebar-foreground text-sm leading-tight font-extrabold" style={{ fontFamily: "'Nunito', sans-serif" }}>
             Sous le Pommier
           </span>
-          <p className="text-[10px] leading-tight font-medium text-green-600">Gestion de caisse</p>
+          <p className="text-[10px] leading-tight font-medium text-[#8DC7B3]">Gestion de caisse</p>
         </div>
       </div>
 
@@ -93,7 +90,7 @@ export function Sidebar() {
         {navGroups.map((group, i) => (
           <div key={i} className={cn(i > 0 && 'mt-6')}>
             {group.label && (
-              <p className="mb-2 px-2 text-[10px] font-bold tracking-widest text-green-700/60 uppercase">
+              <p className="mb-2 px-2 text-[10px] font-bold tracking-widest text-[#4A8A7A]/70 uppercase">
                 {group.label}
               </p>
             )}
@@ -110,16 +107,16 @@ export function Sidebar() {
                           'relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all duration-150',
                           isActive
                             ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-sm'
-                            : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground font-normal'
+                            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground font-normal'
                         )}
                       >
                         {isActive && (
-                          <span className="absolute top-1/2 left-0 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-green-600" />
+                          <span className="absolute top-1/2 left-0 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#8DC7B3]" />
                         )}
                         <Icon
                           className={cn(
                             'h-4 w-4 shrink-0',
-                            isActive ? 'text-green-600' : 'text-sidebar-foreground/35'
+                            isActive ? 'text-[#4A8A7A]' : 'text-sidebar-foreground/50'
                           )}
                         />
                         {label}

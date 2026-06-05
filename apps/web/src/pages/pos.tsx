@@ -27,8 +27,9 @@ export default function PosPage() {
   const [pointDeVenteId, setPointDeVenteId] = useState<string>(
     () => localStorage.getItem(PDV_STORAGE_KEY) ?? ''
   )
+  const [pdvConfirmed, setPdvConfirmed] = useState(false)
 
-  const { data: pdvs = [] } = useQuery<PointDeVente[]>({
+  const { data: pdvs = [], isLoading: pdvsLoading } = useQuery<PointDeVente[]>({
     queryKey: ['points-de-vente'],
     queryFn: () => api.get('/points-de-vente?actif=true'),
     staleTime: 60_000,
@@ -44,6 +45,17 @@ export default function PosPage() {
     if (pointDeVenteId) localStorage.setItem(PDV_STORAGE_KEY, pointDeVenteId)
     else localStorage.removeItem(PDV_STORAGE_KEY)
   }, [pointDeVenteId])
+
+  // Auto-select when exactly 1 PDV
+  useEffect(() => {
+    if (pdvsLoading) return
+    if (pdvs.length === 1) {
+      setPointDeVenteId(pdvs[0].id)
+      setPdvConfirmed(true)
+    } else if (pdvs.length === 0) {
+      setPdvConfirmed(true)
+    }
+  }, [pdvs, pdvsLoading])
 
   const { data: produits = [], isLoading: l1 } = useQuery<ProduitPOS[]>({
     queryKey: ['produits', 'pos'],
@@ -102,7 +114,7 @@ export default function PosPage() {
     refetchInterval: 30_000,
   })
 
-  if (l1 || l2 || l3 || !user) {
+  if (l1 || l2 || l3 || pdvsLoading || !user) {
     return <div className="bg-muted h-screen animate-pulse" />
   }
 
@@ -118,26 +130,38 @@ export default function PosPage() {
       }
     : null
 
-  const activePdv = pdvs.find((p) => p.id === pointDeVenteId) ?? null
+  const showPdvModal = pdvs.length > 1 && !pdvConfirmed
 
   return (
     <>
-      {pdvs.length > 0 && (
-        <div className="fixed top-0 right-0 left-0 z-50 flex items-center justify-end gap-2 bg-black/60 px-4 py-1.5 text-xs text-white backdrop-blur-sm">
-          <span className="text-white/60">Point de vente :</span>
-          <select
-            value={pointDeVenteId}
-            onChange={(e) => setPointDeVenteId(e.target.value)}
-            className="rounded bg-white/10 px-2 py-0.5 text-white focus:outline-none"
-          >
-            <option value="">— Non défini —</option>
-            {pdvs.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nom}
-              </option>
-            ))}
-          </select>
-          {activePdv && <span className="ml-1 font-medium text-green-400">{activePdv.nom}</span>}
+      {showPdvModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-card border-border w-full max-w-sm rounded-xl border shadow-2xl">
+            <div className="px-6 py-5">
+              <h2 className="text-foreground text-lg font-semibold">Choisir un point de vente</h2>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Sélectionnez le point de vente pour cette session.
+              </p>
+              <div className="mt-4 space-y-2">
+                {pdvs.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setPointDeVenteId(p.id)
+                      setPdvConfirmed(true)
+                    }}
+                    className={`w-full rounded-lg border px-4 py-3 text-left text-sm font-medium transition-colors ${
+                      pointDeVenteId === p.id
+                        ? 'border-[#4A8A7A] bg-[#EAF3F0] text-[#2D4A3E]'
+                        : 'border-border hover:bg-muted text-foreground'
+                    }`}
+                  >
+                    {p.nom}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
       <POSInterface

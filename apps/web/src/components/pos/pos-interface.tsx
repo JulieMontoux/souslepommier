@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/auth'
 import { toast } from 'sonner'
-import { LogOut, Leaf, Package, UserRound, X } from 'lucide-react'
+import { LogOut, Package, UserRound, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { recapTVA, roundFiscal, calcMontantTVA } from '@/lib/tva'
@@ -374,9 +374,7 @@ export function POSInterface({
       <div className="bg-background flex h-screen flex-col">
         <header className="border-sidebar-border bg-sidebar flex h-14 shrink-0 items-center justify-between border-b px-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-600">
-              <Leaf className="h-4 w-4 text-white" />
-            </div>
+            <img src="/favicon.svg" alt="" className="h-7 w-7 rounded-md object-contain" />
             <span className="text-sidebar-foreground font-semibold">Caisse</span>
           </div>
           <div className="flex items-center gap-3">
@@ -422,9 +420,7 @@ export function POSInterface({
       {/* Header */}
       <header className="border-sidebar-border bg-sidebar flex h-14 shrink-0 items-center justify-between border-b px-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-500">
-            <Leaf className="h-4 w-4 text-white" />
-          </div>
+          <img src="/favicon.svg" alt="" className="h-7 w-7 rounded-md object-contain" />
           <span className="text-sidebar-foreground font-semibold">Caisse</span>
           {!online && (
             <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-400">

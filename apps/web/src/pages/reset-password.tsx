@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, Leaf } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 
 export default function ResetPasswordPage() {
   const [params] = useSearchParams()
@@ -79,8 +79,8 @@ export default function ResetPasswordPage() {
 
       <Card className="relative z-10 w-full max-w-sm border-green-100 bg-white/90 shadow-2xl shadow-green-900/10 backdrop-blur-sm">
         <CardHeader className="space-y-1 pb-4 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-600 shadow-lg shadow-green-600/30">
-            <Leaf className="h-7 w-7 text-white" />
+          <div className="mx-auto mb-3">
+            <img src="/favicon.svg" alt="Sous le Pommier" className="h-14 w-14 rounded-xl object-contain" />
           </div>
           <CardTitle className="text-xl font-bold text-green-950">Nouveau mot de passe</CardTitle>
           <CardDescription className="text-green-800/60">

@@ -28,7 +28,7 @@ const MODE_LABELS: Record<string, string> = {
   TICKET_RESTO: 'Ticket resto',
 }
 
-const PIE_COLORS = ['#18181b', '#52525b', '#a1a1aa', '#d4d4d8', '#e4e4e7']
+const PIE_COLORS = ['#4A8A7A', '#8DC7B3', '#B2D9CB', '#D5E9E2', '#2D4A3E']
 
 function fmt(n: number) {
   return n.toFixed(2).replace('.', ',') + ' €'
@@ -157,7 +157,7 @@ export function DashboardStats({ initialStats }: DashboardStatsProps) {
                     <Line
                       type="monotone"
                       dataKey="caTTC"
-                      stroke="#18181b"
+                      stroke="#4A8A7A"
                       strokeWidth={2}
                       dot={false}
                       activeDot={{ r: 4 }}
@@ -275,7 +275,7 @@ export function DashboardStats({ initialStats }: DashboardStatsProps) {
                       width={90}
                     />
                     <Tooltip formatter={(v) => [fmt(Number(v ?? 0)), 'CA TTC']} />
-                    <Bar dataKey="caTTC" fill="#18181b" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="caTTC" fill="#4A8A7A" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

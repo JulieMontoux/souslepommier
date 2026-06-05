@@ -66,6 +66,10 @@ export function ProductList({ produits, onProductSelect }: ProductListProps) {
       toast.error('Aucune variante disponible')
       return
     }
+    if (getStockStatus(produit.variantes) === 'out') {
+      toast.error('Produit épuisé')
+      return
+    }
     onProductSelect(produit)
   }
 
@@ -98,12 +102,14 @@ export function ProductList({ produits, onProductSelect }: ProductListProps) {
               const prixMin = produit.variantes.length
                 ? Math.min(...produit.variantes.map((v) => v.prixTTC))
                 : null
+              const stockStatus = getStockStatus(produit.variantes)
+              const isDisabled = produit.horsJour || stockStatus === 'out'
               return (
                 <button
                   key={produit.id}
                   onClick={() => handleProductClick(produit)}
                   className={`group relative flex cursor-pointer flex-col items-center gap-2.5 rounded-xl border p-4 shadow-sm transition-all duration-150 ${
-                    produit.horsJour
+                    isDisabled
                       ? 'cursor-not-allowed border-zinc-200 bg-zinc-50 opacity-50 dark:border-zinc-700 dark:bg-zinc-900/50'
                       : 'border-zinc-200 bg-white hover:border-green-400 hover:shadow-md active:scale-95 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-green-500 dark:hover:bg-zinc-800'
                   }`}
